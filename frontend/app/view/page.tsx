@@ -19,6 +19,7 @@ export default function View() {
     useEffect(() => {
         const fetchImages = async () => {
             const data = await getImages()
+            console.log(data)
             setImages(data)
         }
         fetchImages()

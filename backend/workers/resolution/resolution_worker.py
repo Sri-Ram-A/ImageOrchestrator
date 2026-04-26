@@ -8,6 +8,7 @@ import random
 
 app = FastAPI()
 
+
 @app.post("/process/resolution")
 async def upscale_resolution(file: UploadFile = File(...)):
     # Simulate real-world processing delay
