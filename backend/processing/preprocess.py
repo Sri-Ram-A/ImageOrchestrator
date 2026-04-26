@@ -1,8 +1,6 @@
 import cv2
 import numpy as np
 from scipy.fftpack import dct
-from . import huffman
-from loguru import logger
 from PIL import Image, ImageOps
 
 TREE_PKL_FILE_LOC = "tree.pkl"
@@ -47,33 +45,3 @@ def generate_phash(img, hash_size=8):
 
     # Return the smallest hash as canonical
     return min(candidate_hashes)
-
-
-# b , b_cts means b_channel and b_code_to_symbol
-
-
-def image_encoding(img):
-    b, g, r = cv2.split(img)
-    b_bitstream, b_cts = huffman.compress_image(b)
-    g_bitstream, g_cts = huffman.compress_image(g)
-    r_bitstream, r_cts = huffman.compress_image(r)
-    logger.success(
-        "✅ Successfully encoded image — Blue channel bitstream length:",
-        len(b_bitstream),
-    )
-    return {
-        "b_bitstream": b_bitstream,
-        "g_bitstream": g_bitstream,
-        "r_bitstream": r_bitstream,
-        "b_cts": b_cts,
-        "g_cts": g_cts,
-        "r_cts": r_cts,
-        "shape": b.shape,
-    }
-
-
-def image_decoding(b_bitstream, g_bitstream, r_bitstream, b_cts, g_cts, r_cts, shape):
-    b = huffman.decompress_image(b_bitstream, b_cts, shape)
-    g = huffman.decompress_image(g_bitstream, g_cts, shape)
-    r = huffman.decompress_image(r_bitstream, r_cts, shape)
-    return cv2.merge([b, g, r])

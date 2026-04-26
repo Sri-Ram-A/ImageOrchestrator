@@ -8,3 +8,7 @@
 → MinIO object storage  
 → PostgreSQL metadata DB  
 → Prometheus + Grafana monitoring  
+
+```bash
+git rm -r --cached <folder-name>
+```
