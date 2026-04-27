@@ -5,7 +5,7 @@ from loguru import logger
 
 class ApiConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "api"
+    name = "gallery"
 
     # ### BELOW ADDED BY ME
     # def ready(self):

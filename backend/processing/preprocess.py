@@ -3,14 +3,12 @@ import numpy as np
 from scipy.fftpack import dct
 from PIL import Image, ImageOps
 
-TREE_PKL_FILE_LOC = "tree.pkl"
-
 
 def dct2(img):
     return dct(dct(img.T, norm="ortho").T, norm="ortho")
 
 
-def generate_phash(img, hash_size=8):
+def generate_phash(img: np.ndarray, hash_size: int = 8) -> str:
     # Convert OpenCV image to PIL Image
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     pil_img = Image.fromarray(img)
@@ -45,3 +43,18 @@ def generate_phash(img, hash_size=8):
 
     # Return the smallest hash as canonical
     return min(candidate_hashes)
+
+
+def compute_blur_score(img: np.ndarray) -> float:
+    """
+    Estimate sharpness using the variance of the Laplacian.
+    Higher value = sharper image.
+    A common threshold for "blurry" is < 100, but this depends on image size.
+    Args:
+        img: BGR image as a NumPy array.
+    Returns:
+        Laplacian variance as a float.
+    """
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+    return float(laplacian.var())
