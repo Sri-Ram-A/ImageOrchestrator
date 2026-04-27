@@ -14,6 +14,8 @@ git rm -r --cached <folder-name>
 ```
 # Authenticate and Login
 - Google : https://medium.com/@michal.drozdze/django-rest-framework-jwt-authentication-social-login-login-with-google-8911332f1008
+- https://dj-rest-auth.readthedocs.io/en/latest/guides/social-auth/?utm_source=chatgpt.com
+- https://dj-rest-auth.readthedocs.io/en/latest/guides/social-auth/?utm_source=chatgpt.com#2-configure-django-settings
 
 
 So this is what I need you to do 

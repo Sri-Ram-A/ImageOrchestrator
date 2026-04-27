@@ -1,173 +1,102 @@
-import type { ApiErrorShape, AuthTokens } from "@/types/account";
+// frontend/lib/api.ts
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/";
 
-// ── Token helpers ──────────────────────────────────────────────────────────────
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
-export function getAccessToken(): string | null {
-    return typeof window !== "undefined"
-        ? localStorage.getItem("access_token")
-        : null;
+type BackendError = {
+    message?: string;
+    error?: string;
+    detail?: string;
+};
+
+async function handleErrorResponse(res: Response): Promise<never> {
+    let data: BackendError = {};
+    try {
+        data = await res.json();
+    } catch { }
+    throw {
+        status: res.status,
+        message: data.message ?? data.error ?? data.detail ?? "Request failed",
+    };
 }
 
-export function getRefreshToken(): string | null {
-    return typeof window !== "undefined"
-        ? localStorage.getItem("refresh_token")
-        : null;
-}
+async function refreshAccessToken(): Promise<string> {
+    const refresh = localStorage.getItem("refresh");
+    if (!refresh) throw new Error("No refresh token");
 
-export function setTokens(access: string, refresh: string): void {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("access_token", access);
-    localStorage.setItem("refresh_token", refresh);
-}
-
-export function clearTokens(): void {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-}
-
-// ── Low-level response handling ───────────────────────────────────────────────
-
-async function parseResponse<T>(res: Response): Promise<T> {
-    const contentType = res.headers.get("content-type") ?? "";
-    const isJson = contentType.includes("application/json");
-
-    if (res.ok) {
-        return (isJson ? await res.json() : (await res.text())) as T;
-    }
-
-    let errorBody: unknown = null;
-    if (isJson) {
-        errorBody = await res.json();
-    } else {
-        errorBody = await res.text();
-    }
-
-    const error: ApiErrorShape =
-        typeof errorBody === "object" && errorBody !== null
-            ? (errorBody as ApiErrorShape)
-            : { detail: String(errorBody) };
-
-    const message =
-        error.detail ||
-        error.message ||
-        (typeof errorBody === "string" ? errorBody : "Request failed");
-
-    throw new Error(message);
-}
-
-// ── Refresh logic ─────────────────────────────────────────────────────────────
-
-async function refreshAccessToken(): Promise<string | null> {
-    const refresh = getRefreshToken();
-    if (!refresh) return null;
-
-    const res = await fetch(`${BASE}/auth/refresh/`, {
+    const res = await fetch(`${API_URL}api/token/refresh/`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refresh }),
     });
 
     if (!res.ok) {
-        clearTokens();
-        return null;
+        localStorage.clear();
+        throw new Error("Session expired");
     }
 
-    const data = (await res.json()) as Partial<AuthTokens>;
-    if (!data.access) {
-        clearTokens();
-        return null;
-    }
-
-    // SimpleJWT refresh endpoint usually returns only a new access token.
-    // Keep the same refresh token unless your backend rotates refresh tokens.
-    localStorage.setItem("access_token", data.access);
-
+    const data = await res.json();
+    localStorage.setItem("access", data.access);
     return data.access;
 }
 
-// ── Universal request function ────────────────────────────────────────────────
-
-export async function apiRequest<T>(
-    path: string,
-    options: RequestInit = {},
-    retryOnAuthFailure = true
+export async function REQUEST<T = unknown>(
+    method: HttpMethod,
+    url: string,
+    body?: unknown,
+    options?: { isMultipart?: boolean }
 ): Promise<T> {
-    const url = `${BASE}/${path.replace(/^\/+/, "")}`;
-    const access = getAccessToken();
+    const request = async (): Promise<Response> => {
+        const headers: Record<string, string> = {};
+        if (!options?.isMultipart) {
+            headers["Content-Type"] = "application/json";
+        }
+        const access = localStorage.getItem("access");
+        if (access) {
+            headers["Authorization"] = `Bearer ${access}`;
+        }
+        return fetch(`${API_URL}${url}`, {
+            method,
+            headers,
+            body: options?.isMultipart
+                ? (body as BodyInit)
+                : body
+                ? JSON.stringify(body)
+                : null,
+        });
+    };
 
-    const headers = new Headers(options.headers || {});
-    if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
-        headers.set("Content-Type", "application/json");
+    let res = await request();
+
+    if (res.status === 401) {
+        try {
+            await refreshAccessToken();
+            res = await request();
+        } catch {
+            throw { message: "Session expired. Please login again." };
+        }
     }
 
-    if (access) {
-        headers.set("Authorization", `Bearer ${access}`);
+    if (!res.ok) {
+        await handleErrorResponse(res);
     }
 
-    const res = await fetch(url, {
-        ...options,
-        headers,
-    });
-
-    if (res.status !== 401 || !retryOnAuthFailure) {
-        return parseResponse<T>(res);
-    }
-
-    const newAccess = await refreshAccessToken();
-    if (!newAccess) {
-        throw new Error("Session expired. Please log in again.");
-    }
-
-    const retryHeaders = new Headers(options.headers || {});
-    if (!retryHeaders.has("Content-Type") && !(options.body instanceof FormData)) {
-        retryHeaders.set("Content-Type", "application/json");
-    }
-    retryHeaders.set("Authorization", `Bearer ${newAccess}`);
-
-    const retryRes = await fetch(url, {
-        ...options,
-        headers: retryHeaders,
-    });
-
-    return parseResponse<T>(retryRes);
+    return res.json() as Promise<T>;
 }
 
-// ── Convenience helpers for auth ──────────────────────────────────────────────
+// ── Token helpers ──────────────────────────────────────────────────────────────
 
-export async function apiPost<T, B = unknown>(path: string, body: B): Promise<T> {
-    return apiRequest<T>(path, {
-        method: "POST",
-        body: JSON.stringify(body),
-    });
+export function setTokens(access: string, refresh: string): void {
+    localStorage.setItem("access", access);
+    localStorage.setItem("refresh", refresh);
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
-    return apiRequest<T>(path, { method: "GET" });
+export function clearTokens(): void {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
 }
 
-export async function login(username: string, password: string) {
-    return apiPost<{ access: string; refresh: string }, { username: string; password: string }>(
-        "auth/login/",
-        { username, password }
-    );
-}
-
-export async function register<T>(
-    payload: {
-        username: string;
-        email: string;
-        password: string;
-        password_confirm: string;
-    }
-): Promise<T> {
-    return apiPost<T, typeof payload>("auth/register/", payload);
-}
-
-export async function getMe<T>() {
-    return apiGet<T>("auth/me/");
+export function getAccessToken(): string | null {
+    return typeof window !== "undefined" ? localStorage.getItem("access") : null;
 }

@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react"
+import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { register, setTokens } from "@/lib/api";
-import type { RegisterResponse } from "@/types/account";
+import { REQUEST, setTokens } from "@/lib/api";
+
+type AuthResponse = { access: string; refresh: string; user?: unknown };
 
 export default function RegisterPage() {
     const router = useRouter();
-
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [passwordConfirm, setPasswordConfirm] = useState("");
+    const [password_confirm, setpassword_confirm] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -22,17 +22,17 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
-            const data = await register<RegisterResponse>({
+            const data = await REQUEST<AuthResponse>("POST", "auth/register/", {
                 username,
                 email,
                 password,
-                password_confirm: passwordConfirm,
+                password_confirm,
             });
-
             setTokens(data.access, data.refresh);
             router.push("/view");
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Registration failed");
+        } catch (err: unknown) {
+            const e = err as Record<string, string>;
+            setError(e.message ?? e.error ?? e.detail ?? "Registration failed");
         } finally {
             setLoading(false);
         }
@@ -48,9 +48,7 @@ export default function RegisterPage() {
             >
                 <div className="mb-6">
                     <h1 className="text-2xl font-semibold text-zinc-900">Create account</h1>
-                    <p className="mt-1 text-sm text-zinc-500">
-                        Register to get started.
-                    </p>
+                    <p className="mt-1 text-sm text-zinc-500">Register to get started.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,8 +101,8 @@ export default function RegisterPage() {
                         </label>
                         <input
                             type="password"
-                            value={passwordConfirm}
-                            onChange={(e) => setPasswordConfirm(e.target.value)}
+                            value={password_confirm}
+                            onChange={(e) => setpassword_confirm(e.target.value)}
                             className="w-full rounded-xl border border-zinc-300 px-4 py-3 outline-none transition focus:border-zinc-900"
                             placeholder="Repeat password"
                             minLength={8}
