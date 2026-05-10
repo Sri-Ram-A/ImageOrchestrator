@@ -33,3 +33,60 @@ npm install next-themes
 npx shadcn@latest add button drawer badge dialog input label textarea select
 npm install date-fns
 npx motion-primitives@latest add glow-effect text-morph
+
+# Django-celery
+- https://medium.com/@sunilnepali844/understanding-celery-in-django-a-beginners-guide-to-background-tasks-fd40cbe5aac5
+- https://docs.celeryq.dev/en/stable/django/first-steps-with-django.html
+```bash
+# https://hub.docker.com/_/redis
+podman run -d \
+  --name redis-cc \
+  -p 6379:6379 \
+  -v redis_data:/data \
+  redis
+#   In case of podman
+sudo nano /etc/containers/registries.conf
+# Un-comment and write
+unqualified-search-registries = ["docker.io", "quay.io"]
+podman exec -it redis-cc redis-cli ping
+```
+```bash
+# Podman tutorial
+# List running containers:
+podman ps
+# List ALL containers (even stopped ones):
+podman ps -a
+# Check downloaded images:
+podman images
+# Stop the container:
+podman stop redis-cc
+# Start it again:
+podman start redis-cc
+# Delete the container:
+# (You must stop it first, or use -f to force)
+podman rm -f redis-cc
+# Delete the image:
+podman rmi redis
+# See the logs:
+podman logs -f redis-cc
+# Check Resource Usage:
+podman stats redis-cc
+```
+```bash
+# From your Django project root, in a separate terminal:
+celery -A backend worker --loglevel=info --concurrency=2
+
+# For development with auto-reload on file changes:
+pip install watchdog
+celery -A backend worker --loglevel=info --pool=solo
+```
+Worker types:
+Worker A (CPU heavy)
+celery -A backend worker -Q image_processing --concurrency=2
+Worker B (embedding heavy)
+celery -A backend worker -Q embedding --concurrency=1
+
+# Deply
+## Backend
+https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+python  manage.py check --deploy

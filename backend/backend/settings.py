@@ -14,25 +14,22 @@ import os
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
+
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -43,6 +40,7 @@ INSTALLED_APPS = [
     "rest_framework",  ###
     "rest_framework_simplejwt",  ###
     "drf_spectacular",  ###
+    "django_celery_results",  ###
     "accounts",  ###
     "gallery",  ###
     "corsheaders",  ### https://pypi.org/project/django-cors-headers/
@@ -81,7 +79,6 @@ WSGI_APPLICATION = "backend.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -92,7 +89,6 @@ DATABASES = {
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -111,32 +107,26 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
-
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
-
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 ### BELOW LINES ARE ADDED BY ME
 ###__________LOCAL_DJANGO_________(https://medium.com/django-unleashed/working-and-configuring-media-files-in-django-0c2fa7b97a1e)
-
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+USE_MINIO = False  # most important line
 
 ###__________Django REST Framework_________
 REST_FRAMEWORK = {
@@ -148,9 +138,8 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 ###__________Browsable UI for ImageField_________ https://stackoverflow.com/questions/67521669/using-filefield-imagefield-with-swagger-ui-and-drf-spectacular
-SPECTACULAR_SETTINGS = {
-    'COMPONENT_SPLIT_REQUEST': True
-}
+SPECTACULAR_SETTINGS = {"COMPONENT_SPLIT_REQUEST": True}
+
 ###__________Simple JWT_________
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
@@ -159,9 +148,6 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
-
-
-USE_MINIO = False  # most important line
 
 
 ###__________CORSHEADERS_________(https://pypi.org/project/django-cors-headers/)
@@ -202,3 +188,16 @@ if USE_MINIO:
     MINIO_USE_HTTPS = False  # Mandatiry parameter
     MINIO_BUCKET_CHECK_ON_SAVE = True  # Default: Autocreates bucket if not present
     MINIO_CONSISTENCY_CHECK_ON_START = True  # Health & consistency check
+
+###_________Celery Configuration_________
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+
+
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TIMEZONE = "UTC"
+CELERY_TASK_TRACK_STARTED = True
+# Store results in Django DB (needs django-celery-results)
+CELERY_RESULT_BACKEND = "django-db"

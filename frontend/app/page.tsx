@@ -91,19 +91,19 @@ export default function Home() {
             {/* Action Buttons */}
             <div className="flex items-center sm:flex-row gap-4">
               <button
-                onClick={() => redirect("/register")}
+                onClick={() => redirect("/upload")}
                 className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold px-8 py-6 text-lg rounded-xl shadow-2xl hover:shadow-orange-500/25 transition-all duration-300 transform hover:scale-105 group"
               >
-                Register
+                Start Creating
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </button>
 
               <button
-                onClick={() => redirect("/login")}
+                onClick={() => redirect("/view")}
                 className="border-2 border-orange-500/50 text-white hover:bg-orange-500/20 hover:border-orange-400 font-semibold px-8 py-6 text-lg rounded-xl backdrop-blur-sm transition-all duration-300 group"
               >
                 <Eye className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                Login
+                Explore Gallery
               </button>
             </div>
 

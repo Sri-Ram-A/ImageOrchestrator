@@ -18,7 +18,7 @@ import type { Post } from "@/types";
 
 function MetaRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-stone-100 dark:border-stone-800 last:border-0">
+    <div className="flex items-start gap-3 p-3 border-b border-stone-100 dark:border-stone-800 last:border-0">
       <div className="mt-0.5 p-1.5 rounded-lg bg-stone-100 dark:bg-stone-800">
         <Icon className="w-3.5 h-3.5 text-stone-500 dark:text-stone-400" />
       </div>
@@ -113,6 +113,13 @@ export function PostDrawer({ post, open, onClose, onDelete }: {
                 <Badge variant="secondary" className="text-xs font-mono">
                   <Tag className="w-3 h-3 mr-1" />
                   id:{post.id}
+                </Badge>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary" className="text-xs font-mono">
+                  <Tag className="w-3 h-3 mr-1" />
+                  phash:{post.phash}
                 </Badge>
               </div>
 

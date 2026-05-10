@@ -58,3 +58,19 @@ def compute_blur_score(img: np.ndarray) -> float:
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     laplacian = cv2.Laplacian(gray, cv2.CV_64F)
     return float(laplacian.var())
+
+
+def apply_grayscale(img: np.ndarray) -> np.ndarray:
+    """Convert image to grayscale while preserving 3 channels."""
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+
+def upscale_resolution(img: np.ndarray, scale: int = 2) -> np.ndarray:
+    """Upscale image using cubic interpolation."""
+    height, width = img.shape[:2]
+    return cv2.resize(
+        img,
+        (width * scale, height * scale),
+        interpolation=cv2.INTER_CUBIC,
+    )

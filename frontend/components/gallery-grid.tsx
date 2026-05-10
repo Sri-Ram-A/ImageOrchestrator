@@ -55,6 +55,7 @@ function GalleryCard({ post, index, onClick }: { post: Post; index: number; onCl
           className="object-cover transition-transform duration-500"
           style={{ transform: hovered ? "scale(1.06)" : "scale(1)" }}
           sizes="(max-width: 768px) 50vw, 33vw"
+          loading="eager"
         />
       )}
 

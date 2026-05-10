@@ -16,8 +16,11 @@ const cormorant = Cormorant_Garamond({
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: "Illuminate : Your Visual Gallery",
+  title: "Illuminate",
   description: "A private, AI-powered image gallery with semantic search.",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
