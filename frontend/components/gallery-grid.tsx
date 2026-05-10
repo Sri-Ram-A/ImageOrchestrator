@@ -41,7 +41,7 @@ function GalleryCard({ post, index, onClick }: { post: Post; index: number; onCl
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.94 }}
       transition={{ duration: 0.4, delay: index * 0.04, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className={`relative cursor-pointer overflow-hidden rounded-2xl bg-stone-100 dark:bg-stone-800 ${spanClass}`}
+      className={`relative cursor-pointer overflow-hidden rounded bg-stone-100 dark:bg-stone-800 ${spanClass}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={onClick}

@@ -9,3 +9,9 @@ export type Post = {
     phash: string
     tags?:string
 };
+export type UserProfile = {
+    id: number;
+    username: string;
+    email: string;
+    date_joined: string;
+};
