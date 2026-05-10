@@ -1,0 +1,13 @@
+# service/requirements.txt
+
+fastapi
+uvicorn[standard]
+python-multipart
+Pillow
+numpy
+loguru
+transformers
+# optimum[openvino]
+# openvino
+qdrant-client
+accelerate

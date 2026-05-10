@@ -5,54 +5,53 @@ import io
 import cv2
 import httpx
 import numpy as np
+from typing import cast
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import UploadedFile
+from django.utils.datastructures import MultiValueDict
 from loguru import logger
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from typing import cast
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+)
+
 from processing import preprocess, producer
-
 from .models import Post
-from .serializers import PostCreateSerializer, PostListSerializer
+from .serializers import PostCreateSerializer, PostsListSerializer
 
-FASTAPI_URL = settings.FASTAPI_SERVICE_URL
+FASTAPI_SERVICE_URL = settings.FASTAPI_SERVICE_URL
 
 
-class PostListCreateView(APIView):
-    """
-    GET  /api/gallery/images/          — list the authenticated user's images
-    POST /api/gallery/images/          — upload a new image
-    """
-
+@extend_schema(tags=["Gallery"])
+class PostView(APIView):
     parser_classes = [MultiPartParser, FormParser]
     permission_classes = [IsAuthenticated]
 
-    # ── List ──────────────────────────────────────────────────────────────────
+    @extend_schema(
+        responses=PostsListSerializer(many=True),
+    )
+    def get(self, request: Request):
+        try:
+            posts = Post.objects.filter(owner=request.user)
+            serializer = PostsListSerializer(
+                posts, many=True, context={"request": request}
+            )
+            return Response(serializer.data)
+        except Post.DoesNotExist:
+            return Response({"error": "Not found."}, status=status.HTTP_404_NOT_FOUND)
 
-    def get(self, request):
-        posts = Post.objects.filter(owner=request.user).only(
-            "id",
-            "owner_id",
-            "title",
-            "description",
-            "image_url",
-            "processing_type",
-            "tags",
-            "blur_score",
-            "embedding_id",
-            "uploaded_at",
-            "updated_at",
-        )
-        serializer = PostListSerializer(posts, many=True, context={"request": request})
-        return Response(serializer.data)
-
-    # ── Create ────────────────────────────────────────────────────────────────
-
-    def post(self, request):
+    @extend_schema(
+        request=PostCreateSerializer,
+        responses=PostsListSerializer,
+    )
+    def post(self, request: Request):
         serializer = PostCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -61,9 +60,16 @@ class PostListCreateView(APIView):
         instance = serializer.save(owner=request.user, phash="PENDING")
         instance = cast(Post, instance)
         try:
-            uploaded_file = request.FILES["image_url"]
+            # 0. Get the Image bytes
+            files = cast(MultiValueDict, request.FILES)
+            raw_file = files.get("image")
+            if not raw_file:
+                return Response(
+                    {"error": "No image provided"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            uploaded_file: UploadedFile = raw_file
             uploaded_file.seek(0)
-            file_bytes = uploaded_file.read()
+            file_bytes: bytes = uploaded_file.read()
 
             # 1. Optional worker processing (grayscale, resize, etc.)
             if instance.processing_type != "none":
@@ -83,32 +89,42 @@ class PostListCreateView(APIView):
 
             # 3. Perceptual hash — deduplication guard
             generated_phash = preprocess.generate_phash(img)
-            if Post.objects.filter(phash=generated_phash).exists():
-                instance.delete()
-                return Response(
-                    {"error": "This image has already been uploaded."},
-                    status=status.HTTP_409_CONFLICT,
-                )
+            logger.debug(f"[pk={instance.pk}] generated_phash={generated_phash}")
 
             # 4. Blur detection
             blur_score = preprocess.compute_blur_score(img)
-            logger.debug(f"Image blur_score={blur_score:.2f} for post pk={instance.pk}")
+            logger.debug(f"[pk={instance.pk}] blur_score={blur_score:.2f}")
 
             # 5. Send image to FastAPI microservice → embedding + tags
-            microservice_data = _call_embed_service(file_bytes, uploaded_file.name)
+            microservice_data = {"tags": "", "embedding_id": ""}
+            try:
+                resp = httpx.post(
+                    url=f"{FASTAPI_SERVICE_URL}/embed",
+                    files={
+                        "file": (
+                            uploaded_file.name,
+                            io.BytesIO(file_bytes),
+                            "image/jpeg",
+                        )
+                    },
+                    params={"post_id": instance.id, "owner_id": request.user.id},
+                    timeout=30.0,
+                )
+                resp.raise_for_status()
+                microservice_data = resp.json()
+            except httpx.HTTPError as exc:
+                logger.debug(f"Embed service error: {exc}")
 
             # 6. Persist everything
             instance.phash = generated_phash
             instance.blur_score = blur_score
             instance.tags = microservice_data.get("tags", "")
             instance.embedding_id = microservice_data.get("embedding_id", "")
-            instance.image_url.save(
-                uploaded_file.name, ContentFile(file_bytes), save=False
-            )
+            instance.image.save(uploaded_file.name, ContentFile(file_bytes), save=False)
             instance.save()
 
             return Response(
-                PostListSerializer(instance, context={"request": request}).data,
+                PostsListSerializer(instance, context={"request": request}).data,
                 status=status.HTTP_201_CREATED,
             )
 
@@ -121,39 +137,42 @@ class PostListCreateView(APIView):
             )
 
 
+@extend_schema(tags=["Gallery"])
 class PostDetailView(APIView):
-    """
-    GET    /api/gallery/images/<pk>/   — retrieve a single post
-    DELETE /api/gallery/images/<pk>/   — delete a post (owner only)
-    """
-
     permission_classes = [IsAuthenticated]
 
-    def _get_own_post(self, pk, user):
+    @extend_schema(
+        responses=PostsListSerializer,
+    )
+    def get(self, request: Request, pk: int):
         try:
-            return Post.objects.get(pk=pk, owner=user)
+            post = Post.objects.get(pk=pk, owner=request.user)
         except Post.DoesNotExist:
-            return None
-
-    def get(self, request, pk):
-        post = self._get_own_post(pk, request.user)
-        if post is None:
             return Response({"error": "Not found."}, status=status.HTTP_404_NOT_FOUND)
-        return Response(PostListSerializer(post, context={"request": request}).data)
+        return Response(PostsListSerializer(post, context={"request": request}).data)
 
+    @extend_schema(
+        responses={204: None},
+    )
     def delete(self, request, pk):
-        post = self._get_own_post(pk, request.user)
-        if post is None:
+        try:
+            post = Post.objects.get(pk=pk, owner=request.user)
+            # Remove the embedding from Qdrant via microservice
+            if post.embedding_id:
+                try:
+                    httpx.delete(
+                        f"{FASTAPI_SERVICE_URL}/embed/{post.embedding_id}",
+                        timeout=10.0,
+                    )
+                except httpx.HTTPError as exc:
+                    logger.debug(f"Delete embedding error: {exc}")
+                post.delete()
+        except Post.DoesNotExist:
             return Response({"error": "Not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Remove the embedding from Qdrant via microservice
-        if post.embedding_id:
-            _call_delete_embedding(post.embedding_id)
-
-        post.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@extend_schema(tags=["Search"])
 class ImageSearchView(APIView):
     """
     GET /api/gallery/search/?q=forest
@@ -163,6 +182,17 @@ class ImageSearchView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="q",
+                type=str,
+                required=True,
+                description="Semantic image search query",
+            )
+        ],
+        responses=PostsListSerializer(many=True),
+    )
     def get(self, request):
         query = request.query_params.get("q", "").strip()
         if not query:
@@ -170,12 +200,11 @@ class ImageSearchView(APIView):
                 {"error": "Query parameter 'q' is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
         # Ask FastAPI for matching embedding_ids
         try:
             resp = httpx.get(
-                f"{FASTAPI_URL}/search",
-                params={"q": query, "top_k": 20},
+                f"{FASTAPI_SERVICE_URL}/search",
+                params={"query": query, "top_k": 20},
                 timeout=10.0,
             )
             resp.raise_for_status()
@@ -186,51 +215,15 @@ class ImageSearchView(APIView):
                 {"error": "Search service unavailable."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-
         if not embedding_ids:
             return Response([])
-
         # Fetch matching posts in a single query (preserves ordering from Qdrant)
         posts_map = {
             p.embedding_id: p
             for p in Post.objects.filter(embedding_id__in=embedding_ids)
         }
         ordered_posts = [posts_map[eid] for eid in embedding_ids if eid in posts_map]
-
-        serializer = PostListSerializer(
+        serializer = PostsListSerializer(
             ordered_posts, many=True, context={"request": request}
         )
         return Response(serializer.data)
-
-
-# ── Private helpers ────────────────────────────────────────────────────────────
-
-
-def _call_embed_service(file_bytes: bytes, filename: str) -> dict:
-    """
-    POST image bytes to FastAPI /embed.
-    Returns dict with 'tags' (comma-separated string) and 'embedding_id' (UUID str).
-    Falls back to empty values if the service is unavailable so the upload still succeeds.
-    """
-    try:
-        resp = httpx.post(
-            f"{FASTAPI_URL}/embed",
-            files={"file": (filename, io.BytesIO(file_bytes), "image/jpeg")},
-            timeout=30.0,
-        )
-        resp.raise_for_status()
-        return resp.json()
-    except httpx.HTTPError as exc:
-        logger.debug(f"Embed service error: {exc}")
-        return {"tags": "", "embedding_id": ""}
-
-
-def _call_delete_embedding(embedding_id: str) -> None:
-    """DELETE the Qdrant point via FastAPI microservice."""
-    try:
-        httpx.delete(
-            f"{FASTAPI_URL}/embed/{embedding_id}",
-            timeout=10.0,
-        )
-    except httpx.HTTPError as exc:
-        logger.debug(f"Delete embedding error: {exc}")

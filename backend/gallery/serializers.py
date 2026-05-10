@@ -1,21 +1,41 @@
+# backend/gallery/serializers.py
+
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from django.core.files.uploadedfile import UploadedFile
 from .models import Post
 
 
-class PostListSerializer(serializers.ModelSerializer):
-    owner_username = serializers.CharField(source="owner.username", read_only=True)
+class PostsListSerializer(serializers.ModelSerializer):
+    # image_url = serializers.ImageField(source="image", read_only=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
-        fields = "__all__"
+        fields = [
+            "id",
+            "title",
+            "description",
+            "image_url",
+            "processing_type",
+            "uploaded_at",
+        ]
+    @extend_schema_field(str)
+    def get_image_url(self, obj: Post) -> str | None:        
+        request = self.context.get("request")
+        if not obj.image:
+            return None
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
 
 
 class PostCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        fields = ["title", "description", "creator", "image_url", "processing_type"]
+        fields = ["title", "description", "image", "processing_type"]
 
-    def validate_image_url(self, value):
+    def validate_image(self, value: UploadedFile) -> UploadedFile:
         if not value:
             raise serializers.ValidationError("Image required.")
         if value.size > 10 * 1024 * 1024:

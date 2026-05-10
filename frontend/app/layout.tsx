@@ -1,32 +1,42 @@
-'use client'
 import type { Metadata } from "next";
-import { DM_Sans, DM_Mono } from "next/font/google";
+import { Cormorant_Garamond, DM_Sans, Geist } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import { Toaster } from 'sonner'
-// Toaster needs 'use client' remember
+import { cn } from "@/lib/utils";
 
-const dmSans = DM_Sans({
+/**
+ * Display / heading font — editorial, refined, high contrast
+ */
+const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  variable: "--font-sans",
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
 });
 
-const dmMono = DM_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["400"],
-});
+/**
+ * Body font — geometric, clean, highly legible
+ */
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export const metadata: Metadata = {
+  title: "Lumina — Your Visual Gallery",
+  description: "A private, AI-powered image gallery with semantic search.",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${dmMono.variable}`}>
-      <body>{children}
-        <Toaster position="top-right" richColors />
+    <html lang="en" suppressHydrationWarning className={cn(cormorant.variable, "font-sans", geist.variable)}>
+      <body className="font-sans antialiased">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }

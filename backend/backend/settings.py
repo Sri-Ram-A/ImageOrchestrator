@@ -13,7 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
-
+from dotenv import load_dotenv
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-lwd_w04h*n258^29#xvaj6d-v6@3x89n5vit0%u30xpr=(34js"
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -41,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",  ###
     "rest_framework_simplejwt",  ###
+    "drf_spectacular",  ###
     "accounts",  ###
     "gallery",  ###
     "corsheaders",  ### https://pypi.org/project/django-cors-headers/
@@ -136,16 +138,20 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ── Django REST Framework ──────────────────────────────────────────────────────
+###__________Django REST Framework_________
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "EXCEPTION_HANDLER": "backend.exceptions.custom_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
-
-# ── Simple JWT ─────────────────────────────────────────────────────────────────
+###__________Browsable UI for ImageField_________ https://stackoverflow.com/questions/67521669/using-filefield-imagefield-with-swagger-ui-and-drf-spectacular
+SPECTACULAR_SETTINGS = {
+    'COMPONENT_SPLIT_REQUEST': True
+}
+###__________Simple JWT_________
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -164,7 +170,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
 ]
 # CORS_ORIGIN_ALLOW_ALL = True
-FASTAPI_SERVICE_URL = os.environ.get("FASTAPI_SERVICE_URL", "http://localhost:8001")
+FASTAPI_SERVICE_URL = os.environ.get("FASTAPI_SERVICE_URL")
 
 ###__________MINIO_________(https://pypi.org/project/django-minio-backend/)
 if USE_MINIO:

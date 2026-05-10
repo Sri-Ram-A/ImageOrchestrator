@@ -1,6 +1,6 @@
 // frontend/lib/api.ts
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -25,7 +25,7 @@ async function refreshAccessToken(): Promise<string> {
     const refresh = localStorage.getItem("refresh");
     if (!refresh) throw new Error("No refresh token");
 
-    const res = await fetch(`${API_URL}api/token/refresh/`, {
+    const res = await fetch(`${API_URL}/api/token/refresh/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refresh }),
@@ -47,34 +47,49 @@ export async function REQUEST<T = unknown>(
     body?: unknown,
     options?: { isMultipart?: boolean }
 ): Promise<T> {
-    const request = async (): Promise<Response> => {
-        const headers: Record<string, string> = {};
-        if (!options?.isMultipart) {
-            headers["Content-Type"] = "application/json";
-        }
-        const access = localStorage.getItem("access");
-        if (access) {
-            headers["Authorization"] = `Bearer ${access}`;
-        }
-        return fetch(`${API_URL}${url}`, {
-            method,
-            headers,
-            body: options?.isMultipart
-                ? (body as BodyInit)
-                : body
+    // 1. Instantiate headers 
+    const headers: Record<string, string> = {};
+    // 2. Change Content-Type if Images are present
+    if (!options?.isMultipart) {
+        headers["Content-Type"] = "application/json";
+    }
+    // 3. Get Access token to acces backend
+    const access = localStorage.getItem("access");
+    if (access) {
+        headers["Authorization"] = `Bearer ${access}`;
+    }
+    // 4. Now Fetch the result from backend
+    let res = await fetch(`${API_URL}${url}`, {
+        method,
+        headers,
+        body: options?.isMultipart
+            ? (body as BodyInit)
+            : body
                 ? JSON.stringify(body)
                 : null,
-        });
-    };
+    });
 
-    let res = await request();
-
+    // If no authorized then get a new refresh and acess token
     if (res.status === 401) {
         try {
             await refreshAccessToken();
-            res = await request();
+            const newAccess = localStorage.getItem("access");
+            if (newAccess) {
+                headers["Authorization"] = `Bearer ${newAccess}`;
+            }
+            res = await fetch(`${API_URL}${url}`, {
+                method,
+                headers,
+                body: options?.isMultipart
+                    ? (body as BodyInit)
+                    : body
+                        ? JSON.stringify(body)
+                        : null,
+            });
         } catch {
-            throw { message: "Session expired. Please login again." };
+            throw {
+                message: "Session expired. Please login again.",
+            };
         }
     }
 
@@ -82,11 +97,10 @@ export async function REQUEST<T = unknown>(
         await handleErrorResponse(res);
     }
 
-    return res.json() as Promise<T>;
+    return (await res.json()) as T;
 }
 
-// ── Token helpers ──────────────────────────────────────────────────────────────
-
+// Token helpers 
 export function setTokens(access: string, refresh: string): void {
     localStorage.setItem("access", access);
     localStorage.setItem("refresh", refresh);

@@ -1,3 +1,5 @@
+# backend/gallery/models.py
+
 from django.db import models
 from django.contrib.auth.models import User
 # Create your models here.
@@ -9,17 +11,13 @@ from django.contrib.auth.models import User
 # suppose image names are same in local/media/ as well as minio/media then they will be rendered irrespective of value of USE_MINIO
 
 
-def upload_to(instance, filename):
-    return f"images/{filename}"
-
-
 class Post(models.Model):
     PROCESSING_CHOICES = [
         ("none", "None"),
         ("grayscale", "Grayscale"),
         ("resize", "Resize"),
     ]
-    id =  models.BigAutoField(primary_key=True)
+    id = models.BigAutoField(primary_key=True)
     # Auth
     owner = models.ForeignKey(
         User,
@@ -29,7 +27,7 @@ class Post(models.Model):
     # Content
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
-    image_url = models.ImageField(upload_to="images/%Y/%m/")
+    image = models.ImageField(upload_to="images/%Y/%m/")
     processing_type = models.CharField(
         max_length=20,
         choices=PROCESSING_CHOICES,
