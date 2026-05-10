@@ -103,9 +103,14 @@ def search_images(
     vec = outputs.detach().cpu().numpy().flatten()
     norm = np.linalg.norm(vec)
     query_embedding = vec / norm if norm > 0 else vec
-    ids = store.search(query_embedding, top_k=top_k)
-    logger.debug(f"Search query='{query}' returned {len(ids)} results")
-    return {"ids": ids}
+    scored_points_result = store.search(query_embedding, top_k=top_k)
+    post_ids = [
+        int(hit.payload.get("post_id",0))
+        for hit in scored_points_result.points
+        if hit.payload and hit.payload.get("post_id") is not None
+    ]
+    logger.debug(f"Retrived post_ids : {post_ids}")
+    return post_ids
 
 
 @app.get("/", response_class=HTMLResponse)

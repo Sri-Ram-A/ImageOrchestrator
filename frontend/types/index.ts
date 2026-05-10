@@ -7,4 +7,5 @@ export type Post = {
     uploaded_at: string;
     owner?: number
     phash: string
+    tags?:string
 };

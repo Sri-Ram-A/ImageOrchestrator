@@ -2,14 +2,13 @@
 
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { GlowEffect } from "@/components/motion-primitives/glow-effect";
-import { TextMorph } from "@/components/motion-primitives/text-morph";
-import { Upload, ImageIcon, X } from "lucide-react";
+import { Upload, Sparkles, Layers, ImageIcon, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,16 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { uploadPost } from "@/lib/gallery-api";
 import type { Post } from "@/types";
+import { Button } from "./ui/button";
+import { REQUEST } from "@/lib/api"
 
-type UploadDialogProps = {
+export function UploadDialog({ open, onClose, onUploaded }: {
   open: boolean;
   onClose: () => void;
   onUploaded: (post: Post) => void;
-};
-
-export function UploadDialog({ open, onClose, onUploaded }: UploadDialogProps) {
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -86,7 +84,15 @@ export function UploadDialog({ open, onClose, onUploaded }: UploadDialogProps) {
     setError(null);
     setLoading(true);
     try {
-      const post = await uploadPost({ title, description, image: file, processing_type: processingType });
+      const payload = { title, description, image: file, processing_type: processingType };
+
+      const formData = new FormData();
+      formData.append("title", payload.title);
+      formData.append("description", payload.description);
+      formData.append("image", payload.image);
+      formData.append("processing_type", payload.processing_type);
+      const post = await REQUEST<Post>("POST", "gallery/images/", formData, { isMultipart: true });
+
       onUploaded(post);
       resetForm();
       onClose();
@@ -100,12 +106,14 @@ export function UploadDialog({ open, onClose, onUploaded }: UploadDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="max-w-md bg-white dark:bg-stone-950 border-stone-200 dark:border-stone-800 rounded-2xl">
+      <DialogContent className="max-w-md bg-white dark:bg-stone-950 border-stone-200 dark:border-stone-800">
         <DialogHeader>
           <DialogTitle className="font-display text-xl text-stone-900 dark:text-stone-50">
             Upload Image
           </DialogTitle>
         </DialogHeader>
+
+        <DialogFooter className="footer"></DialogFooter>
 
         <div className="space-y-4 mt-1">
           {/* Drop Zone */}
@@ -116,10 +124,10 @@ export function UploadDialog({ open, onClose, onUploaded }: UploadDialogProps) {
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
             onKeyDown={(e) => e.key === "Enter" && handleDropZoneClick()}
-            className="relative group cursor-pointer rounded-xl border-2 border-dashed border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500 transition-colors overflow-hidden"
+            className="relative group cursor-pointer rounded border-2 border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500 transition-colors overflow-hidden"
             style={{ minHeight: "140px" }}
           >
-            <input
+            <Input
               ref={fileInputRef}
               type="file"
               accept="image/*"
@@ -138,13 +146,13 @@ export function UploadDialog({ open, onClose, onUploaded }: UploadDialogProps) {
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={preview} alt="Preview" className="w-full h-40 object-cover" />
-                  <button
+                  <Button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setFile(null); setPreview(null); }}
-                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                    className="absolute top-2 right-2 bg-black/60 text-white  p-1 hover:bg-black/80"
                   >
                     <X className="w-3 h-3" />
-                  </button>
+                  </Button>
                 </motion.div>
               ) : (
                 <motion.div
@@ -154,8 +162,10 @@ export function UploadDialog({ open, onClose, onUploaded }: UploadDialogProps) {
                   exit={{ opacity: 0 }}
                   className="flex flex-col items-center justify-center gap-2 p-8 text-stone-400 dark:text-stone-600 h-40"
                 >
-                  <div className="p-3 rounded-xl bg-stone-100 dark:bg-stone-800 group-hover:bg-stone-200 dark:group-hover:bg-stone-700 transition-colors">
+                  <div className="p-3 flex rounded-2xl space-x-4 bg-stone-100 dark:bg-stone-800 group-hover:bg-stone-200 dark:group-hover:bg-stone-700 transition-colors">
+                    <Sparkles className="w-6 h-6" />
                     <ImageIcon className="w-6 h-6" />
+                    <Layers className="w-6 h-6" />
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-medium text-stone-600 dark:text-stone-400">
@@ -175,7 +185,7 @@ export function UploadDialog({ open, onClose, onUploaded }: UploadDialogProps) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="My photo"
-              className="rounded-xl border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900"
+              className="rounded border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900"
             />
           </div>
 
@@ -189,7 +199,7 @@ export function UploadDialog({ open, onClose, onUploaded }: UploadDialogProps) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Tell us about this image..."
               rows={2}
-              className="rounded-xl border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 resize-none"
+              className="rounded border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 resize-none"
             />
           </div>
 
@@ -197,7 +207,7 @@ export function UploadDialog({ open, onClose, onUploaded }: UploadDialogProps) {
           <div className="space-y-1.5">
             <Label className="text-xs uppercase tracking-wider text-stone-500">Processing</Label>
             <Select value={processingType} onValueChange={(v) => setProcessingType(v as typeof processingType)}>
-              <SelectTrigger className="rounded-xl border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900">
+              <SelectTrigger className="rounded border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -209,36 +219,57 @@ export function UploadDialog({ open, onClose, onUploaded }: UploadDialogProps) {
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-3 py-2">
               {error}
             </p>
           )}
 
-          {/* Submit with glow effect */}
-          <div className="relative">
-            <motion.div
-              className="pointer-events-none absolute inset-0 rounded-xl"
-              animate={{ opacity: loading ? 1 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <GlowEffect
-                colors={["#0894FF", "#C959DD", "#FF2E54", "#FF9004"]}
-                mode="colorShift"
-                blur="medium"
-                duration={4}
-              />
-            </motion.div>
+          {/* Submit with animated glowing border */}
+          <div className="relative w-full rounded-xl p-[1.5px] overflow-hidden">
+            {/* Animated Border */}
+            {loading && (
+              <motion.div
+                className="absolute inset-0 z-0"
+                animate={{
+                  rotate: 360,
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "linear",
+                }}
+              >
+                <div className="h-fullw-fullrounded-xlblur-sm"
+                  style={{
+                    background: `
+            conic-gradient(
+              from 0deg,
+              #0894FF,
+              #C959DD,
+              #FF2E54,
+              #FF9004,
+              #0894FF
+            )
+          `,
+                  }}
+                />
+              </motion.div>
+            )}
 
-            <button
-              type="button"
-              disabled={loading || !file}
-              onClick={handleSubmit}
-              className="relative w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-stone-900 dark:bg-stone-50 text-white dark:text-stone-900 font-medium text-sm transition hover:bg-stone-800 dark:hover:bg-stone-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {!loading && <Upload className="w-4 h-4" />}
-              <TextMorph>{loading ? "Uploading..." : "Upload"}</TextMorph>
-            </button>
+            {/* Inner Button Container */}
+            <div className="relative z-10 rounded-[10px] bg-stone-900 dark:bg-stone-50">
+              <Button
+                disabled={loading || !file}
+                onClick={handleSubmit} className=" relative w-full flex items-center justify-center gap-2 rounded-[10px] bg-stone-900 dark:bg-stone-50 px-4 py-3 text-sm font-medium text-white dark:text-stone-900 transition hover:bg-stone-800 dark:hover:bg-stone-200 disabled:opacity-50 disabled:cursor-not-allowed   "
+              >
+                {!loading && <Upload className="w-4 h-4" />}
+                <p>
+                  {loading ? "Uploading..." : "Upload"}
+                </p>
+              </Button>
+            </div>
           </div>
+
         </div>
       </DialogContent>
     </Dialog>

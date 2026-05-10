@@ -4,9 +4,7 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-/**
- * Display / heading font — editorial, refined, high contrast
- */
+// Display / heading font — editorial, refined, high contrast
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
@@ -14,13 +12,11 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
-/**
- * Body font — geometric, clean, highly legible
- */
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+// Body font — geometric, clean, highly legible
+const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: "Lumina — Your Visual Gallery",
+  title: "Illuminate : Your Visual Gallery",
   description: "A private, AI-powered image gallery with semantic search.",
 };
 

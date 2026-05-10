@@ -19,6 +19,7 @@ class PostsListSerializer(serializers.ModelSerializer):
             "image_url",
             "processing_type",
             "uploaded_at",
+            "tags"
         ]
     @extend_schema_field(str)
     def get_image_url(self, obj: Post) -> str | None:        

@@ -4,11 +4,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import type { Post } from "@/types";
+import { Badge } from "@/components/ui/badge";
 
-type GalleryGridProps = {
-  posts: Post[];
-  onPostClick: (post: Post) => void;
-};
+
 
 const GRID_SPANS = [
   "col-span-1 row-span-2",
@@ -28,7 +26,14 @@ function getSpanClass(index: number): string {
 function GalleryCard({ post, index, onClick }: { post: Post; index: number; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
   const spanClass = getSpanClass(index);
-
+  const parsedTags =
+    typeof post.tags === "string"
+      ? post.tags
+        .replace(/[\[\]']/g, "")
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+      : [];
   return (
     <motion.div
       layout
@@ -68,16 +73,32 @@ function GalleryCard({ post, index, onClick }: { post: Post; index: number; onCl
         {post.description && (
           <p className="text-xs text-white/70 truncate mt-0.5">{post.description}</p>
         )}
+        {
+          parsedTags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {parsedTags.map((tag, index) => (
+                <Badge
+                  key={index}
+                  variant="secondary"
+                  className=" rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-green-900 dark:bg-amber-800 text-white/80 border border-white/10 backdrop-blur-sm hover:bg-white/20   "
+                >
+                  #{tag}
+                </Badge>
+              ))}
+            </div>
+          )}
       </motion.div>
     </motion.div>
   );
 }
 
-export function GalleryGrid({ posts, onPostClick }: GalleryGridProps) {
+export function GalleryGrid({ posts, onPostClick }: {
+  posts: Post[];
+  onPostClick: (post: Post) => void;
+}) {
   if (posts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-stone-400 dark:text-stone-600">
-        <div className="text-6xl mb-4">🖼️</div>
         <p className="font-display text-xl">No images yet</p>
         <p className="text-sm mt-1">Upload your first image to get started</p>
       </div>

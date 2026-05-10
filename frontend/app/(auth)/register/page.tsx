@@ -4,6 +4,8 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { REQUEST, setTokens } from "@/lib/api";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 type AuthResponse = { access: string; refresh: string; user?: unknown };
 
@@ -20,7 +22,6 @@ export default function RegisterPage() {
         e.preventDefault();
         setError(null);
         setLoading(true);
-
         try {
             const data = await REQUEST<AuthResponse>("POST", "auth/register/", {
                 username,
@@ -29,7 +30,7 @@ export default function RegisterPage() {
                 password_confirm,
             });
             setTokens(data.access, data.refresh);
-            router.push("/view");
+            router.push("/login");
         } catch (err: unknown) {
             const e = err as Record<string, string>;
             setError(e.message ?? e.error ?? e.detail ?? "Registration failed");
@@ -39,56 +40,55 @@ export default function RegisterPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-zinc-50 px-4">
-            <motion.div
-                initial={{ opacity: 0, y: 12 }}
+<div className="min-h-screen flex items-center justify-center bg-[url('/bg-register.jpeg')] bg-cover bg-center px-4">            <motion.div
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35 }}
-                className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm"
+                className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white/80 p-8 shadow-sm"
             >
                 <div className="mb-6">
                     <h1 className="text-2xl font-semibold text-zinc-900">Create account</h1>
                     <p className="mt-1 text-sm text-zinc-500">Register to get started.</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4 text-black">
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-zinc-700">
+                        <Label className="mb-1 block text-sm font-medium text-zinc-700">
                             Username
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            className="w-full rounded-xl border border-zinc-300 px-4 py-3 outline-none transition focus:border-zinc-900"
+                            className="w-full rounded border border-zinc-300 px-4 py-3 outline-none transition focus:border-zinc-900"
                             placeholder="your_username"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-zinc-700">
+                        <Label className="mb-1 block text-sm font-medium text-zinc-700">
                             Email
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full rounded-xl border border-zinc-300 px-4 py-3 outline-none transition focus:border-zinc-900"
+                            className="w-full rounded border border-zinc-300 px-4 py-3 outline-none transition focus:border-zinc-900"
                             placeholder="you@example.com"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-zinc-700">
+                        <Label className="mb-1 block text-sm font-medium text-zinc-700">
                             Password
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full rounded-xl border border-zinc-300 px-4 py-3 outline-none transition focus:border-zinc-900"
+                            className="w-full rounded border border-zinc-300 px-4 py-3 outline-none transition focus:border-zinc-900"
                             placeholder="At least 8 characters"
                             minLength={8}
                             required
@@ -96,14 +96,14 @@ export default function RegisterPage() {
                     </div>
 
                     <div>
-                        <label className="mb-1 block text-sm font-medium text-zinc-700">
+                        <Label className="mb-1 block text-sm font-medium text-zinc-700">
                             Confirm password
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                             type="password"
                             value={password_confirm}
                             onChange={(e) => setpassword_confirm(e.target.value)}
-                            className="w-full rounded-xl border border-zinc-300 px-4 py-3 outline-none transition focus:border-zinc-900"
+                            className="w-full rounded border border-zinc-300 px-4 py-3 outline-none transition focus:border-zinc-900"
                             placeholder="Repeat password"
                             minLength={8}
                             required
@@ -111,7 +111,7 @@ export default function RegisterPage() {
                     </div>
 
                     {error && (
-                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                             {error}
                         </div>
                     )}
@@ -119,7 +119,7 @@ export default function RegisterPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full rounded-xl bg-zinc-900 px-4 py-3 font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full rounded bg-zinc-900 px-4 py-3 font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {loading ? "Creating account..." : "Create account"}
                     </button>

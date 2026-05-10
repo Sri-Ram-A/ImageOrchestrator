@@ -33,7 +33,7 @@ export function GalleryHeader({ onUpload }: { onUpload: () => void; }) {
                         <div className="w-3 h-3 rounded-sm bg-white dark:bg-stone-900" />
                     </div>
                     <span className="font-display text-lg font-semibold text-stone-900 dark:text-stone-50 tracking-tight">
-                        Lumina
+                        Illuminate
                     </span>
                 </motion.div>
 

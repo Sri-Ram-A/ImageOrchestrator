@@ -4,14 +4,13 @@ import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Search, X, Loader2 } from "lucide-react";
 
-type SearchBarProps = {
+
+export function SearchBar({ onSearch, onClear, loading, isActive }: {
   onSearch: (query: string) => void;
   onClear: () => void;
   loading: boolean;
   isActive: boolean;
-};
-
-export function SearchBar({ onSearch, onClear, loading, isActive }: SearchBarProps) {
+}) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,7 +79,7 @@ export function SearchBar({ onSearch, onClear, loading, isActive }: SearchBarPro
               exit={{ opacity: 0, scale: 0.8 }}
               type="button"
               onClick={handleClear}
-              className="mr-3 p-1 rounded-full hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
+              className="mr-3 p-1 rounded hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
             >
               <X className="w-3.5 h-3.5 text-stone-400" />
             </motion.button>

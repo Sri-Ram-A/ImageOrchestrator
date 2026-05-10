@@ -174,14 +174,7 @@ class PostDetailView(APIView):
 
 @extend_schema(tags=["Search"])
 class ImageSearchView(APIView):
-    """
-    GET /api/gallery/search/?q=forest
-    Delegates semantic vector search to the FastAPI microservice, then
-    returns the matching Post objects from the Django DB.
-    """
-
     permission_classes = [IsAuthenticated]
-
     @extend_schema(
         parameters=[
             OpenApiParameter(
@@ -200,7 +193,6 @@ class ImageSearchView(APIView):
                 {"error": "Query parameter 'q' is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        # Ask FastAPI for matching embedding_ids
         try:
             resp = httpx.get(
                 f"{FASTAPI_SERVICE_URL}/search",
@@ -208,21 +200,19 @@ class ImageSearchView(APIView):
                 timeout=10.0,
             )
             resp.raise_for_status()
-            embedding_ids = resp.json().get("ids", [])
+            post_ids = resp.json()
         except httpx.HTTPError as exc:
             logger.debug(f"Search microservice error: {exc}")
             return Response(
                 {"error": "Search service unavailable."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-        if not embedding_ids:
+        if not post_ids:
             return Response([])
-        # Fetch matching posts in a single query (preserves ordering from Qdrant)
         posts_map = {
-            p.embedding_id: p
-            for p in Post.objects.filter(embedding_id__in=embedding_ids)
+            p.id: p for p in Post.objects.filter(id__in=post_ids, owner=request.user)
         }
-        ordered_posts = [posts_map[eid] for eid in embedding_ids if eid in posts_map]
+        ordered_posts = [posts_map[pid] for pid in post_ids if pid in posts_map]
         serializer = PostsListSerializer(
             ordered_posts, many=True, context={"request": request}
         )

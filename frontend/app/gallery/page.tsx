@@ -127,7 +127,7 @@ export default function GalleryPage() {
                     )}
                 </motion.div>
 
-                {/* Loading skeleton */}
+                {/* Display Images + Skeleton Loading */}
                 <AnimatePresence mode="wait">
                     {pageLoading ? (
                         <motion.div
