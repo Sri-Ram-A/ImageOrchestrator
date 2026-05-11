@@ -3,7 +3,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from . import views
+from . import views, google_views
 
 urlpatterns = [
     # Registration — returns user + tokens
@@ -14,4 +14,5 @@ urlpatterns = [
     path("refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
     # Authenticated user profile
     path("me/", views.MeView.as_view(), name="auth-me"),
+    path("google_login/", google_views.GoogleLoginView.as_view(), name="google-login"),
 ]

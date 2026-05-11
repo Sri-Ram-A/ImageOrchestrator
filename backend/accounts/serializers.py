@@ -39,3 +39,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "username", "email", "date_joined"]
         read_only_fields = fields
+
+
+class GoogleAuthResponseSerializer(serializers.Serializer):
+    sub = serializers.CharField()
+    email = serializers.EmailField()
+    email_verified = serializers.BooleanField()
+    name = serializers.CharField()
+    picture = serializers.URLField(required=False)
+    given_name = serializers.CharField(required=False)
+    family_name = serializers.CharField(required=False)

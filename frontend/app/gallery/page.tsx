@@ -24,7 +24,7 @@ export default function GalleryPage() {
         () => {
             async function load() {
                 try {
-                    const data = await REQUEST<Post[]>("GET", "gallery/images/");;
+                    const data = await REQUEST<Post[]>("GET", "/api/gallery/images/");;
                     setPosts(data);
                     setDisplayedPosts(data);
                 } catch {
@@ -47,7 +47,7 @@ export default function GalleryPage() {
     }
 
     async function handleDelete(id: number) {
-        await REQUEST<void>("DELETE", `gallery/images/${id}/`);
+        await REQUEST<void>("DELETE", `/api/gallery/images/${id}/`);
         const updated = posts.filter((p) => p.id !== id);
         setPosts(updated);
         setDisplayedPosts(isSearchActive ? displayedPosts.filter((p) => p.id !== id) : updated);
@@ -63,7 +63,7 @@ export default function GalleryPage() {
         setIsSearchActive(true);
         setSearchLoading(true);
         try {
-            const results = await REQUEST<Post[]>("GET", `gallery/search/?q=${encodeURIComponent(query)}`);;
+            const results = await REQUEST<Post[]>("GET", `/api/gallery/search/?q=${encodeURIComponent(query)}`);;
             setDisplayedPosts(results);
         } catch {
             setDisplayedPosts([]);

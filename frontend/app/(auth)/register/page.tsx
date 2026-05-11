@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { REQUEST, setTokens } from "@/lib/api";
+import { useGoogleLogin } from "@react-oauth/google";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { REQUEST, setTokens } from "@/lib/api";
 
 type AuthResponse = { access: string; refresh: string; user?: unknown };
 
@@ -17,18 +19,21 @@ export default function RegisterPage() {
     const [password_confirm, setpassword_confirm] = useState("");
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         setError(null);
         setLoading(true);
+
         try {
-            const data = await REQUEST<AuthResponse>("POST", "auth/register/", {
+            const data = await REQUEST<AuthResponse>("POST", "/api/auth/register/", {
                 username,
                 email,
                 password,
                 password_confirm,
             });
+
             setTokens(data.access, data.refresh);
             router.push("/login");
         } catch (err: unknown) {
@@ -39,8 +44,32 @@ export default function RegisterPage() {
         }
     }
 
+    const googleLogin = useGoogleLogin({
+        flow: "implicit",
+        onSuccess: async (tokenResponse) => {
+            setError(null);
+            setGoogleLoading(true);
+            try {
+                const data = await REQUEST<AuthResponse>("POST", "/api/auth/google_login/", {
+                    token: tokenResponse.access_token,
+                });
+                setTokens(data.access, data.refresh);
+                router.push("/");
+            } catch (err: unknown) {
+                const e = err as Record<string, string>;
+                setError(e.message ?? e.error ?? e.detail ?? "Google login failed");
+            } finally {
+                setGoogleLoading(false);
+            }
+        },
+        onError: () => {
+            setError("Google sign-in failed");
+        },
+    });
+
     return (
-<div className="min-h-screen flex items-center justify-center bg-[url('/bg-register.jpeg')] bg-cover bg-center px-4">            <motion.div
+        <div className="min-h-screen flex items-center justify-center bg-[url('/bg-register.jpeg')] bg-cover bg-center px-4">
+            <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35 }}
@@ -116,13 +145,22 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    <button
+                    <Button
                         type="submit"
                         disabled={loading}
-                        className="w-full rounded bg-zinc-900 px-4 py-3 font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full rounded bg-secondary px-4 py-3 font-medium text-white transition hover:bg-secondary/90 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {loading ? "Creating account..." : "Create account"}
-                    </button>
+                    </Button>
+
+                    <Button
+                        type="button"
+                        onClick={() => googleLogin()}
+                        disabled={googleLoading || loading}
+                        className="w-full rounded bg-blue-600/80 px-4 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {googleLoading ? "Signing in..." : "Sign in with Google"}
+                    </Button>
                 </form>
 
                 <p className="mt-6 text-sm text-zinc-600">

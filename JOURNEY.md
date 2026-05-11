@@ -86,6 +86,9 @@ celery -A backend worker -Q image_processing --concurrency=2
 Worker B (embedding heavy)
 celery -A backend worker -Q embedding --concurrency=1
 
+# Sign in with google
+https://priyanshuguptaofficial.medium.com/implementing-google-sign-in-with-django-and-reactjs-nextjs-6d34f0534dbd
+
 # Deply
 ## Backend
 https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/

@@ -58,8 +58,7 @@ class PostView(APIView):
         _: UploadedFile = raw_file
 
         # 2. Save immediately with the raw image; processing happens in background.
-        # phash="PENDING" is a sentinel so the unique constraint is satisfied.
-        instance = serializer.save(owner=request.user, phash="PENDING")
+        instance = serializer.save(owner=request.user)
         instance = cast(Post, instance)
 
         # 3. Kick off the two-step pipeline as a Celery chain

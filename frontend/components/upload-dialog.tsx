@@ -6,6 +6,7 @@ import { Upload, Sparkles, Layers, ImageIcon, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter
@@ -91,7 +92,7 @@ export function UploadDialog({ open, onClose, onUploaded }: {
       formData.append("description", payload.description);
       formData.append("image", payload.image);
       formData.append("processing_type", payload.processing_type);
-      const post = await REQUEST<Post>("POST", "gallery/images/", formData, { isMultipart: true });
+      const post = await REQUEST<Post>("POST", "/api/gallery/images/", formData, { isMultipart: true });
 
       onUploaded(post);
       resetForm();
@@ -111,6 +112,9 @@ export function UploadDialog({ open, onClose, onUploaded }: {
           <DialogTitle className="font-display text-xl text-stone-900 dark:text-stone-50">
             Upload Image
           </DialogTitle>
+          <DialogDescription>
+            You can now Drag and Drop your Images
+          </DialogDescription>
         </DialogHeader>
 
         <DialogFooter className="footer"></DialogFooter>

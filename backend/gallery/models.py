@@ -34,7 +34,7 @@ class Post(models.Model):
         default="none",
     )
     # Deduplication
-    phash = models.CharField(max_length=64, unique=True, db_index=True)
+    phash = models.CharField(max_length=64, unique=True, db_index=True,null=True,blank=True)
     # Populated by FastAPI microservice
     tags = models.CharField(max_length=512, blank=True, default="")
     blur_score = models.FloatField(null=True, blank=True)

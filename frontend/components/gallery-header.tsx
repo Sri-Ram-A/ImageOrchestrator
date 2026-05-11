@@ -51,7 +51,7 @@ export function GalleryHeader({
         setProfileError(null);
 
         try {
-            const data = await REQUEST<UserProfile>("GET", "auth/me/");
+            const data = await REQUEST<UserProfile>("GET", "/api/auth/me/");
             setMe(data);
         } catch {
             setProfileError("Could not load profile.");

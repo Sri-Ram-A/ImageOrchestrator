@@ -43,3 +43,4 @@ class MeView(APIView):
     def get(self, request):
         serializer = self.serializer_class(request.user)
         return Response(serializer.data)
+

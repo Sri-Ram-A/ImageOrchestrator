@@ -22,7 +22,7 @@ export default function LoginPage() {
         setError(null);
         setLoading(true);
         try {
-            const data = await REQUEST<AuthTokens>("POST", "auth/login/", { username, password });
+            const data = await REQUEST<AuthTokens>("POST", "/api/auth/login/", { username, password });
             setTokens(data.access, data.refresh);
             router.push("/gallery");
         } catch (err: unknown) {
