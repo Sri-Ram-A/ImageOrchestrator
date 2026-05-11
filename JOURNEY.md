@@ -90,6 +90,19 @@ celery -A backend worker -Q embedding --concurrency=1
 https://priyanshuguptaofficial.medium.com/implementing-google-sign-in-with-django-and-reactjs-nextjs-6d34f0534dbd
 
 # Deply
+
+## FastAPI Backend
+- https://huggingface.co/blog/HemanthSai7/deploy-applications-on-huggingface-spaces
+
+```bash
+# Check Which Repo You're In
+git remote -v  
+git submodule add \
+https://huggingface.co/spaces/Sri-Ram-A/image-semantic-search \
+image-semantic-search
+```
 ## Backend
 https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 python  manage.py check --deploy
+
+git clone --recurse-submodules ...

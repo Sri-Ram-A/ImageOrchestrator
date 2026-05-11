@@ -4,6 +4,7 @@ fastapi
 uvicorn[standard]
 python-multipart
 Pillow
+requests
 numpy
 loguru
 transformers
@@ -11,3 +12,4 @@ transformers
 # openvino
 qdrant-client
 accelerate
+pytorch

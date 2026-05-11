@@ -4,4 +4,4 @@ media/
 minio_data/
 db.sqlite3
 migrations/
-.env
+.env*

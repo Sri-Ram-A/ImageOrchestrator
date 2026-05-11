@@ -1,4 +1,4 @@
-# backend/accounts/views.py
+# backend/accounts/google_views.py
 import requests
 from typing import Any, cast
 from django.contrib.auth import get_user_model

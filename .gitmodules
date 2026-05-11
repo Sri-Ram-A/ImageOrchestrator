@@ -1,0 +1,3 @@
+[submodule "image-semantic-search"]
+	path = image-semantic-search
+	url = https://huggingface.co/spaces/Sri-Ram-A/image-semantic-search

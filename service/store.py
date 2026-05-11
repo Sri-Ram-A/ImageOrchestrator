@@ -7,9 +7,7 @@ Collection schema:
 """
 
 import os
-from pprint import pprint
 import uuid
-
 import numpy as np
 from loguru import logger
 from qdrant_client import QdrantClient
