@@ -1,0 +1,60 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Mamba/Conda
+conda/
+micromamba/
+
+# VSCode
+.vscode/
+
+# OS files
+.DS_Store
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.*
+
+# Cache
+.pytest_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Build artifacts
+dist/
+build/
+
+# HuggingFace cache
+.cache/
+huggingface/
+
+# Model checkpoints
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# SQLite
+*.sqlite3
+db.sqlite3

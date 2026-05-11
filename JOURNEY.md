@@ -100,9 +100,36 @@ git remote -v
 git submodule add \
 https://huggingface.co/spaces/Sri-Ram-A/image-semantic-search \
 image-semantic-search
+# Username : Sri-Ram-A
+# PAssword : Hugghing face Write acess token
 ```
+- Made the folder structure proper 
+How to execute?  
+```bash
+python
+from huggingface_hub import snapshot_download
+snapshot_download(
+    repo_id="google/siglip-base-patch16-224",
+    local_dir="./models/siglip"
+)
+# Move this models folder to image-semantic-search/backend/models
+cd backend
+python manage.py
+```
+
+
 ## Backend
 https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 python  manage.py check --deploy
 
-git clone --recurse-submodules ...
+How Team Members Clone
+VERY IMPORTANT.
+They must use:
+git clone --recurse-submodules <repo>
+
+Otherwise submodule folder appears empty.
+If Already Cloned
+They run:
+
+git submodule update --init --recursive
+

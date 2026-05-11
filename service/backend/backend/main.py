@@ -1,23 +1,22 @@
 # fastapi_service/main.py
-"""
-FastAPI Microservice — Image Embedding & Semantic Search
-
-Endpoints:
-  POST   /embed          — embed an uploaded image, store in Qdrant, return tags + id
-  DELETE /embed/{id}     — remove an embedding from Qdrant
-  GET    /search?q=...   — text query → ranked list of embedding_ids
-  GET    /health         — liveness check
-"""
 
 import io
 import numpy as np
+from pathlib import Path
+from PIL import Image
+from loguru import logger
+from dotenv import load_dotenv
+
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
-from loguru import logger
-from PIL import Image
-
 from .embedder import SigLIPEmbedder
 from .store import QdrantStore
+
+BASE_DIR = Path().resolve()
+MODELS_DIR = BASE_DIR / "models"
+load_dotenv(BASE_DIR / ".env")
+logger.debug(f"Using Base dir : {BASE_DIR}")
+
 
 app = FastAPI(title="Image Embedding Service", version="1.0.0")
 
@@ -105,7 +104,7 @@ def search_images(
     query_embedding = vec / norm if norm > 0 else vec
     scored_points_result = store.search(query_embedding, top_k=top_k)
     post_ids = [
-        int(hit.payload.get("post_id",0))
+        int(hit.payload.get("post_id", 0))
         for hit in scored_points_result.points
         if hit.payload and hit.payload.get("post_id") is not None
     ]

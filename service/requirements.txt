@@ -12,4 +12,4 @@ transformers
 # openvino
 qdrant-client
 accelerate
-pytorch
+torch

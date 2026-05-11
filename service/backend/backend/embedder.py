@@ -13,16 +13,19 @@ google/siglip-base-patch16-224
 """
 
 import requests
+from PIL import Image
 from io import BytesIO
+from pathlib import Path
+from loguru import logger
+
 import numpy as np
 import torch
 import torch.nn.functional as F
-from PIL import Image
-from loguru import logger
 from transformers import AutoModel, AutoProcessor
 
-
+BASE_DIR = Path().resolve()
 MODEL_ID = "google/siglip-base-patch16-224"
+MODEL_PATH = BASE_DIR / "models" / "siglip"
 
 CANDIDATE_PROMPTS = {
     "forest": "A natural forest with many green trees",
@@ -55,12 +58,12 @@ class SigLIPEmbedder:
         logger.info(f"Loading {MODEL_ID}")
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.processor = AutoProcessor.from_pretrained(
-            MODEL_ID,
+            MODEL_PATH,
             use_fast=True,
             local_files_only=True,
         )
         self.model = AutoModel.from_pretrained(
-            MODEL_ID,
+            MODEL_PATH,
             local_files_only=True,
         ).to(self.device)
         self.model.eval()
