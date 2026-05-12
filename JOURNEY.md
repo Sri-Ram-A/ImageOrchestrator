@@ -90,6 +90,35 @@ celery -A backend worker -Q embedding --concurrency=1
 https://priyanshuguptaofficial.medium.com/implementing-google-sign-in-with-django-and-reactjs-nextjs-6d34f0534dbd
 
 # Deply
+## Redis 
+- Configure using Redis Cloud Free
+## Postgres
+- Using Aiven / NeonDB i selected
+- https://medium.com/django-unleashed/complete-tutorial-set-up-postgresql-database-with-django-application-d9e789ffa384
+
+Host Django //
+Run Gunicorn //
+Put Nginx in front
+Enable HTTPS
+Configure static/media serving
+Configure Celery worker
+Configure Celery beat (optional)
+Configure logging
+Configure backups
+Configure object storage later
+## Preparing Django
+```bash
+gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --access-logfile -
+gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3 --access-logfile -
+```
+- But this will arise a problem where if you visit localhost:8000/admin the static files will not be served anymore therefore
+- Because when DEBUG=False, Django no longer serves static files automatically.
+- python manage.py collectstatic
+Even after: collecting static files
+Something still must: serve them to browsers.
+- https://whitenoise.readthedocs.io/en/stable/
+
+Creating Azure Virtual Machine for deploying backends
 
 ## FastAPI Backend
 - https://huggingface.co/blog/HemanthSai7/deploy-applications-on-huggingface-spaces
@@ -122,14 +151,8 @@ python manage.py
 https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 python  manage.py check --deploy
 
-How Team Members Clone
-VERY IMPORTANT.
-They must use:
-git clone --recurse-submodules <repo>
-
-Otherwise submodule folder appears empty.
-If Already Cloned
-They run:
-
-git submodule update --init --recursive
-
+git pull
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py collectstatic
+systemctl restart gunicorn

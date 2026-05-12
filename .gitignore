@@ -5,3 +5,6 @@ minio_data/
 db.sqlite3
 migrations/
 .env*
+models/
+staticfiles/
+tests/
