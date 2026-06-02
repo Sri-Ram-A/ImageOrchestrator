@@ -18,7 +18,7 @@ from urllib.parse import urlparse, parse_qsl
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env.prod")
+load_dotenv(BASE_DIR / ".env.local")
 
 
 # Quick-start development settings - unsuitable for production
@@ -98,7 +98,6 @@ if DB_ENGINE == "sqlite":
 
 elif DB_ENGINE == "postgres":
     tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
-
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -152,7 +151,9 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 ###__________WHITENOISE__________(https://whitenoise.readthedocs.io/en/stable/)
 STORAGES = {
-    # ...
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },

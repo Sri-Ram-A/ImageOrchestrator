@@ -84,7 +84,7 @@ class SigLIPEmbedder:
         self.label_embeddings = text_emb.cpu().numpy()
         logger.info(f"Loaded label embeddings {self.label_embeddings.shape}")
 
-    def embed_image(self, pil_image) -> np.ndarray:
+    def generate_image_embedding(self, pil_image) -> np.ndarray:
         with torch.no_grad():
             inputs = self.processor(images=pil_image, return_tensors="pt")
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
@@ -93,7 +93,7 @@ class SigLIPEmbedder:
         embedding = image_emb[0].cpu().numpy().astype(np.float32)
         return embedding
 
-    def embed_text(self, text: str) -> np.ndarray:
+    def generate_text_embedding(self, text: str) -> np.ndarray:
         with torch.no_grad():
             inputs = self.processor(text=[text], return_tensors="pt")
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
@@ -101,7 +101,7 @@ class SigLIPEmbedder:
             text_emb = F.normalize(text_emb, p=2, dim=-1)
         return text_emb[0].cpu().numpy().astype(np.float32)
 
-    def classify(self, image_embedding: np.ndarray)->list[dict]:
+    def classify_image_embedding(self, image_embedding: np.ndarray) -> list[dict]:
         scores = np.dot(self.label_embeddings, image_embedding)
         logger.debug(f"scores={scores}")
         ranked = scores.argsort()[::-1]
@@ -130,19 +130,19 @@ if __name__ == "__main__":
     embedder = SigLIPEmbedder()
 
     # image embedding
-    emb = embedder.embed_image(image)
+    emb = embedder.generate_image_embedding(image)
     print("\nEmbedding shape:", emb.shape)
     # should be:
     # (768,)
 
     # zero-shot labels
-    tags = embedder.classify(emb)
+    tags = embedder.classify_image_embedding(emb)
     print("\nPredicted tags:")
     print(tags)
 
     # semantic text-image test
     query = "a mountain lake landscape"
-    q_emb = embedder.embed_text(query)
+    q_emb = embedder.generate_text_embedding(query)
     similarity = float(emb @ q_emb)
     print(f"\nImage-query similarity ('{query}'):")
     print(similarity)

@@ -6,7 +6,7 @@ from pathlib import Path
 from PIL import Image
 from loguru import logger
 from dotenv import load_dotenv
-
+import torch.nn.functional as F
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
 from .embedder import SigLIPEmbedder
@@ -33,7 +33,7 @@ def health():
 
 # Embed ─
 @app.post("/embed")
-async def embed_image(
+async def generate_image_embedding(
     file: UploadFile = File(...),
     post_id: int = Query(..., description="Django Post primary key"),
     owner_id: int = Query(..., description="Django User primary key"),
@@ -53,8 +53,8 @@ async def embed_image(
         raise HTTPException(status_code=422, detail="Cannot decode image.")
 
     # Embed + classify
-    image_embedding = embedder.embed_image(pil_image)
-    tag_results = embedder.classify(image_embedding)
+    image_embedding = embedder.generate_image_embedding(pil_image)
+    tag_results = embedder.classify_image_embedding(image_embedding)
     tags = [item["label"] for item in tag_results]
     logger.debug(f"post_id={post_id} tags='{tags}'")
 
@@ -92,16 +92,15 @@ def search_images(
     approximate nearest-neighbour search in Qdrant.
     Returns { ids: [embedding_id, ...] } ordered by similarity.
     """
-    inputs = embedder.processor(
-        text=[f"This is a photo of {query}."],
+    text_inputs = embedder.processor(
+        text=[query],
         return_tensors="pt",
         padding=True,
     )
-    inputs = {k: v.to(embedder.device) for k, v in inputs.items()}
-    outputs = embedder.model.get_text_features(**inputs)
-    vec = outputs.detach().cpu().numpy().flatten()
-    norm = np.linalg.norm(vec)
-    query_embedding = vec / norm if norm > 0 else vec
+    text_inputs = {k: v.to(embedder.device) for k, v in text_inputs.items()}
+    text_emb = embedder.model.get_text_features(**text_inputs)
+    text_emb = F.normalize(text_emb, p=2, dim=-1)
+    query_embedding = text_emb.detach().cpu().numpy().flatten()
     scored_points_result = store.search(query_embedding, top_k=top_k)
     post_ids = [
         int(hit.payload.get("post_id", 0))

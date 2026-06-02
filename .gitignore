@@ -8,3 +8,4 @@ migrations/
 models/
 staticfiles/
 tests/
+*.pem
