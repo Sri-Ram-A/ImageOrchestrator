@@ -13,3 +13,6 @@ transformers
 qdrant-client
 accelerate
 torch
+sentencepiece # SiglipTokenizer requires the SentencePiece library
+torchvision
+load_dotenv

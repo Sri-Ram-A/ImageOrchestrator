@@ -98,7 +98,7 @@ def search_images(
         padding=True,
     )
     text_inputs = {k: v.to(embedder.device) for k, v in text_inputs.items()}
-    text_emb = embedder.model.get_text_features(**text_inputs)
+    text_emb = embedder.model.get_text_features(**text_inputs).pooler_output
     text_emb = F.normalize(text_emb, p=2, dim=-1)
     query_embedding = text_emb.detach().cpu().numpy().flatten()
     scored_points_result = store.search(query_embedding, top_k=top_k)

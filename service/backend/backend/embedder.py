@@ -22,10 +22,21 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from transformers import AutoModel, AutoProcessor
+from huggingface_hub import snapshot_download
+import sentencepiece
 
-BASE_DIR = Path().resolve()
+print("Sentence Piece Version:", sentencepiece.__version__)
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 MODEL_ID = "google/siglip-base-patch16-224"
 MODEL_PATH = BASE_DIR / "models" / "siglip"
+if not MODEL_PATH.exists():
+    snapshot_download(
+        repo_id=MODEL_ID,
+        local_dir=str(MODEL_PATH),
+        local_dir_use_symlinks=False,
+    )
+    logger.info(f"Downloaded model at {MODEL_PATH}")
 
 CANDIDATE_PROMPTS = {
     "forest": "A natural forest with many green trees",
@@ -57,15 +68,18 @@ class SigLIPEmbedder:
     def __init__(self):
         logger.info(f"Loading {MODEL_ID}")
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        logger.info(f"Using device : {self.device}")
         self.processor = AutoProcessor.from_pretrained(
-            MODEL_PATH,
+            str(MODEL_PATH),
             use_fast=True,
             local_files_only=True,
         )
         self.model = AutoModel.from_pretrained(
-            MODEL_PATH,
+            str(MODEL_PATH),
             local_files_only=True,
         ).to(self.device)
+        logger.debug(f"MODEL TYPE: {type(self.model)}")
+        logger.debug(self.model.__class__.__name__)
         self.model.eval()
 
         # Precompute label embeddings
@@ -76,8 +90,16 @@ class SigLIPEmbedder:
                 text=prompts, padding=True, truncation=True, return_tensors="pt"
             )
             text_inputs = {k: v.to(self.device) for k, v in text_inputs.items()}
-            # logger.debug(f"Text inputs : {text_inputs}")
-            text_emb = self.model.get_text_features(**text_inputs)
+            # 1. Get the wrapper object
+            output_obj = self.model.get_text_features(**text_inputs)
+
+            # 2. Extract the actual tensor matrix
+            text_emb = output_obj.pooler_output
+            logger.debug(
+                f"TEXT EMB TENSOR SHAPE: {text_emb.shape}"
+            )  # Should be (20, 768)
+
+            # 3. Normalize the raw PyTorch tensor safely
             text_emb = F.normalize(text_emb, p=2, dim=-1)
             logger.debug(f"Normalized Text Embeddings  : {text_emb}")
 
@@ -88,7 +110,7 @@ class SigLIPEmbedder:
         with torch.no_grad():
             inputs = self.processor(images=pil_image, return_tensors="pt")
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            image_emb = self.model.get_image_features(**inputs)
+            image_emb = self.model.get_image_features(**inputs).pooler_output # <-- Add .pooler_output here
             image_emb = F.normalize(image_emb, p=2, dim=-1)
         embedding = image_emb[0].cpu().numpy().astype(np.float32)
         return embedding
@@ -97,7 +119,7 @@ class SigLIPEmbedder:
         with torch.no_grad():
             inputs = self.processor(text=[text], return_tensors="pt")
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            text_emb = self.model.get_text_features(**inputs)
+            text_emb = self.model.get_text_features(**inputs).pooler_output # <-- Add .pooler_output here
             text_emb = F.normalize(text_emb, p=2, dim=-1)
         return text_emb[0].cpu().numpy().astype(np.float32)
 

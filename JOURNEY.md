@@ -13,13 +13,6 @@ python manage.py
 npm run dev
 ```
 
-# Deploying on Azure
-- Created VM with following details
-  - Compute Infrastructure | Virtual Machines > Korea
-  - VSCode : F1 > Type and select: Remote-SSH: Add New SSH Host...
-chmod 400 /home/srirama/Documents/sr_proj/ImageOrchestrator/Illuminate_key.pem
-ssh -i /home/srirama/Documents/sr_proj/ImageOrchestrator/Illuminate_key.pem username@20.194.8.107
-
 ## User browser
 → Edge / CDN / DNS  
 → Next.js frontend  

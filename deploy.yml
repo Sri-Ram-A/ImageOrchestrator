@@ -1,0 +1,170 @@
+---
+- name: Deploy ImageOrchestrator Backend
+  hosts: localhost
+  connection: local
+  become: true
+
+  vars:
+    project_root: /home/azureuser/ImageOrchestrator
+    backend_root: /home/azureuser/ImageOrchestrator/backend
+    venv_path: /home/azureuser/ImageOrchestrator/venv
+    domain_or_ip: illuminate-backend.duckdns.org 
+  tasks:
+    - name: 1. Ensure Python dependencies are installed in the virtualenv
+      ansible.builtin.pip:
+        requirements: "{{ backend_root }}/requirements.txt"
+        virtualenv: "{{ venv_path }}"
+
+    - name: 2. Ensure manage.py has execution permissions
+      file:
+        path: "{{ backend_root }}/manage.py"
+        mode: "+x"
+
+    - name: 3. Run Django collectstatic
+      community.general.django_manage:
+        command: collectstatic
+        project_path: "{{ backend_root }}"
+        virtualenv: "{{ venv_path }}"
+
+    - name: 4. Install gunicorn systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/gunicorn.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=gunicorn daemon
+          After=network.target
+
+          [Service]
+          User=azureuser
+          Group=www-data
+          WorkingDirectory={{ backend_root }}
+          ExecStart={{ venv_path }}/bin/gunicorn \
+              --workers 3 \
+              --bind unix:{{ project_root }}/gunicorn.sock \
+              backend.wsgi:application
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: restart gunicorn
+
+    - name: 5. Install FastAPI uvicorn systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/fastapi.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=FastAPI Uvicorn service
+          After=network.target
+
+          [Service]
+          User=azureuser
+          Group=www-data
+          WorkingDirectory={{ project_root }}/service/backend
+          # Runs the script directly using the virtualenv python compiler
+          ExecStart={{ venv_path }}/bin/uvicorn \
+              backend.main:app \
+              --host 0.0.0.0 \
+              --port 7860
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: restart fastapi
+
+    - name: 6. Install Caddyfile
+      ansible.builtin.copy:
+        dest: /etc/caddy/Caddyfile
+        mode: "0644"
+        content: |
+          {{ domain_or_ip }} {
+              reverse_proxy unix//{{ project_root }}/gunicorn.sock
+
+              handle_path /static/* {
+                  root * {{ backend_root }}/staticfiles
+                  file_server
+              }
+          }
+      notify: restart caddy
+
+    - name: 7. Enable and start gunicorn
+      ansible.builtin.systemd:
+        name: gunicorn
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: 8. Enable and start fastapi
+      ansible.builtin.systemd:
+        name: fastapi
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: 9. Enable and start caddy
+      ansible.builtin.systemd:
+        name: caddy
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: 10. Install Celery worker systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/celery.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Celery Image Processing Worker
+          After=network.target
+
+          [Service]
+          User=azureuser
+          Group=www-data
+          WorkingDirectory={{ backend_root }}
+          # Explicitly executes using the python environment's binary path
+          ExecStart={{ venv_path }}/bin/celery -A backend worker -Q image_processing --concurrency=2
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+      notify: restart celery
+
+    - name: 11. Enable and start celery worker
+      ansible.builtin.systemd:
+        name: celery
+        state: started
+        enabled: true
+        daemon_reload: true
+
+  handlers:
+    - name: restart gunicorn
+      ansible.builtin.systemd:
+        name: gunicorn
+        state: restarted
+        enabled: true
+        daemon_reload: true
+
+    - name: restart fastapi
+      ansible.builtin.systemd:
+        name: fastapi
+        state: restarted
+        enabled: true
+        daemon_reload: true
+
+    - name: restart caddy
+      ansible.builtin.systemd:
+        name: caddy
+        state: restarted
+        enabled: true
+        daemon_reload: true
+
+    - name: restart celery
+      ansible.builtin.systemd:
+        name: celery
+        state: restarted
+        enabled: true
+        daemon_reload: true

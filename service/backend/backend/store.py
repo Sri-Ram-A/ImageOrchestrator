@@ -17,7 +17,10 @@ from qdrant_client.http.models import (
     PointStruct,
     VectorParams,
 )
- # Load QDRANT_CLUSTER_ENDPOINT and QDRANT_API_KEY from .env
+from dotenv import load_dotenv
+
+load_dotenv()
+# Load QDRANT_CLUSTER_ENDPOINT and QDRANT_API_KEY from .env
 COLLECTION_NAME = "image_embeddings"
 VECTOR_SIZE = 768
 
