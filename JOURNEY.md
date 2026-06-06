@@ -1,4 +1,26 @@
+```bash
+# Creating the environment
+micromamba create -n pytorch python=3.12 pytorch torchvision torchaudio pytorch-cuda -c pytorch -c nvidia -c conda-forge --channel-priority flexible -y
+micromamba activate pytorch
+python -c "import torch; print('CUDA Active:', torch.cuda.is_available())"
+python -c "import torch; print(torch.__version__)"
+# 2.5.1
+micromamba install pillow huggingface_hub einops opencv scipy httpx loguru qdrant-client pandas python-dotenv
+micromamba install transformers=4.46 **accelerate** timm -c conda-forge --channel-priority flexible -y
+# Setup
+micromamba install django djangorestframework fastapi uvicorn[standard] gunicorn python-multipart -c conda-forge celery watchdog redis-py psycopg2-binary minio djangorestframework django-cors-headers django-celery-results djangorestframework_simplejwt drf-spectacular whitenoise
+# Drf specitacular not available in conda
+micromamba install -c conda-forge pyarrow=20.0.0
+pip install django-minio-backend
+```
 # How to run everything locally
+```v
+# alternative command
+Press `Ctrl + Shift + P` (or `Cmd + Shift + P`).
+Type "Tasks: Run Task" and press `Enter`.
+Select "🚀 Start All Terminals".
+```
+OR
 ```bash
 micromamba activate pytorch
 # django-backend
@@ -12,6 +34,38 @@ python manage.py
 # frontend
 npm run dev
 ```
+
+# Deploying on Azure
+- Created VM with following details
+  - Compute Infrastructure | Virtual Machines > Korea
+  - VSCode : F1 > Type and select: Remote-SSH: Add New SSH Host...
+
+```bash
+# To connect with azure vm
+chmod 400 /home/srirama/Documents/sr_proj/ImageOrchestrator/Illuminate_key.pem
+ssh -i /home/srirama/Documents/sr_proj/ImageOrchestrator/Illuminate_key.pem username@20.194.8.107
+```
+```bash
+# 1. Setting up in azure vm
+git checkout cloud
+git branch
+# 2. Copy .env files from local to azure
+# 3. Install python 
+sudo apt update
+sudo apt install python3 python3-pip python3-venv python3-full -y
+python3 --version
+pip3 --version
+# Python 3.12.3
+# pip 24.0 from /usr/lib/python3/dist-packages/pip (python 3.12)
+# 4. Creating venv
+python3 -m venv venv
+source venv/bin/activate
+#  5. Install requirements.txt
+cd backend && pip3 install -r requirements.txt
+cd service && pip3 install -r requirements.txt
+python  manage.py check --deploy
+```
+
 
 ## User browser
 → Edge / CDN / DNS  

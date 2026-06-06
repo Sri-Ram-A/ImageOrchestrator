@@ -54,7 +54,7 @@ export default function RegisterPage() {
                     token: tokenResponse.access_token,
                 });
                 setTokens(data.access, data.refresh);
-                router.push("/");
+                router.push("/gallery");
             } catch (err: unknown) {
                 const e = err as Record<string, string>;
                 setError(e.message ?? e.error ?? e.detail ?? "Google login failed");

@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'http',
-        hostname: 'loacalhost',
+        hostname: 'localhost',
         port: '8000',
         pathname: '/media/**',
       },
@@ -29,7 +29,12 @@ const nextConfig: NextConfig = {
         hostname: '127.0.0.1',
         port: '9000', //minio server
         pathname: '/media/**',
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**', 
+      },
     ],
   }
 };

@@ -77,7 +77,7 @@ function GalleryCard({ post, index, onClick }: { post: Post; index: number; onCl
         {
           parsedTags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {parsedTags.map((tag, index) => (
+              {parsedTags.slice(0, 3).map((tag, index) => (
                 <Badge
                   key={index}
                   variant="secondary"

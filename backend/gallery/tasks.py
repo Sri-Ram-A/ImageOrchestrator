@@ -107,8 +107,9 @@ def task_generate_embedding(self, post_id: int) -> None:
 
         # 3. Update existing post fields and save
         post.tags = data.get("tags", "")
+        post.detailed_description = data.get("detailed_description", "")
         post.embedding_id = data.get("embedding_id", "")
-        post.save(update_fields=["tags", "embedding_id"])
+        post.save(update_fields=["tags", "detailed_description", "embedding_id"])
 
         logger.debug(
             f"[task_generate_embedding] pk={post_id} | embedding_id={post.embedding_id} | tags={post.tags}"

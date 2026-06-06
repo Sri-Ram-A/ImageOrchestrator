@@ -12,16 +12,7 @@ class PostsListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = [
-            "id",
-            "title",
-            "description",
-            "image_url",
-            "processing_type",
-            "uploaded_at",
-            "tags",
-            "phash"
-        ]
+        fields = "__all__"
     @extend_schema_field(str)
     def get_image_url(self, obj: Post) -> str | None:        
         request = self.context.get("request")

@@ -1,170 +1,218 @@
-# fastapi_service/qdrant_store.py
 """
-Qdrant vector store wrapper.
-Collection schema:
-- Vector: 768-d float32, cosine similarity
-- Payload: {"post_id": int, "owner_id": int, "tags": str}
+qdrant_store.py
+
+Manages two Qdrant collections:
+  - image_embeddings      : one point per uploaded post image
+  - image_tags_embeddings : one point per Places-365 label (seeded separately)
+
+Both use 768-d cosine-similarity vectors produced by all-mpnet-base-v2.
 """
 
 import os
 import uuid
 import numpy as np
+from dotenv import load_dotenv
 from loguru import logger
 from qdrant_client import QdrantClient
+from qdrant_client.conversions.common_types import QueryResponse
 from qdrant_client.http.models import (
     Distance,
     PointIdsList,
     PointStruct,
     VectorParams,
 )
-from dotenv import load_dotenv
 
 load_dotenv()
-# Load QDRANT_CLUSTER_ENDPOINT and QDRANT_API_KEY from .env
-COLLECTION_NAME = "image_embeddings"
+
+IMAGE_COLLECTION_NAME = "image_descr_embeddings"
+LABEL_COLLECTION_NAME = "image_tag_embeddings"
 VECTOR_SIZE = 768
 
 
 class QdrantStore:
+    """Wrapper class managing operations on Qdrant vector store collections."""
+
     def __init__(self):
+        """Initializes the Qdrant client and creates missing collections."""
+
+        # 1. Connect to Qdrant
         self.client = QdrantClient(
             url=os.environ["QDRANT_CLUSTER_ENDPOINT"],
             api_key=os.environ.get("QDRANT_API_KEY"),
             cloud_inference=True,
         )
-        existing = {c.name for c in self.client.get_collections().collections}
-        if COLLECTION_NAME not in existing:
-            self.client.create_collection(
-                collection_name=COLLECTION_NAME,
-                vectors_config=VectorParams(
-                    size=VECTOR_SIZE,
-                    distance=Distance.COSINE,
-                ),
-            )
-            logger.debug(f"Created Qdrant collection '{COLLECTION_NAME}'")
-        else:
-            logger.debug(f"Qdrant collection '{COLLECTION_NAME}' already exists.")
 
-    def upsert(self, embedding: np.ndarray, payload: dict) -> str:
+        # 2. Fetch existing collections to avoid duplication errors
+        existing = {c.name for c in self.client.get_collections().collections}
+        logger.debug(f"Existing Qdrant collections: {existing}")
+
+        # 3. Create image collection if missing
+        if IMAGE_COLLECTION_NAME not in existing:
+            self.client.create_collection(
+                collection_name=IMAGE_COLLECTION_NAME,
+                vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
+            )
+            logger.info(f"Created collection '{IMAGE_COLLECTION_NAME}'")
+        else:
+            logger.debug(f"Collection '{IMAGE_COLLECTION_NAME}' already exists.")
+
+        # 4. Create label collection if missing (seeding done separately via seed_labels())
+        if LABEL_COLLECTION_NAME not in existing:
+            self.client.create_collection(
+                collection_name=LABEL_COLLECTION_NAME,
+                vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
+            )
+            logger.info(f"Created collection '{LABEL_COLLECTION_NAME}'")
+        else:
+            logger.debug(f"Collection '{LABEL_COLLECTION_NAME}' already exists.")
+
+    def upsert(
+        self,
+        embedding: np.ndarray,
+        payload: dict,
+        collection_name: str = IMAGE_COLLECTION_NAME,
+    ) -> str:
         """
-        Store an image embedding.
+        Insert or update a single vector point in the given collection.
+
+        Args:
+            embedding:       Normalised 768-d float32 array.
+            payload:         Metadata to attach (post_id, owner_id, tags, etc.).
+            collection_name: Target collection. Defaults to image collection.
+
         Returns:
-            The UUID string assigned as the Qdrant point ID.
+            str: The UUID assigned to this point.
         """
+
+        # 1. Generate a unique point ID
         point_id = str(uuid.uuid4())
+
+        # 2. Upsert into Qdrant
         self.client.upsert(
-            collection_name=COLLECTION_NAME,
+            collection_name=collection_name,
             points=[
                 PointStruct(id=point_id, vector=embedding.tolist(), payload=payload)
             ],
         )
+        logger.debug(
+            f"Upserted point id={point_id} into '{collection_name}' | payload keys={list(payload.keys())}"
+        )
         return point_id
 
-    def delete(self, point_id: str) -> None:
-        """Remove a single point by its UUID."""
+    def delete(
+        self, point_id: str, collection_name: str = IMAGE_COLLECTION_NAME
+    ) -> None:
+        """
+        Hard-delete a single point by its UUID.
+
+        Args:
+            point_id:        UUID string returned by upsert().
+            collection_name: Collection to delete from.
+        """
         self.client.delete(
-            collection_name=COLLECTION_NAME,
+            collection_name=collection_name,
             points_selector=PointIdsList(points=[point_id]),
         )
-        logger.debug(f"Deleted embedding point_id={point_id}")
+        logger.debug(f"Deleted point_id={point_id} from '{collection_name}'")
 
-    def search(self, query_vector: np.ndarray, top_k: int = 5):
+    def search(
+        self,
+        query_vector: np.ndarray,
+        top_k: int = 5,
+        collection_name: str = IMAGE_COLLECTION_NAME,
+    ) -> QueryResponse:
         """
-        Return a ranked list of point UUIDs matching the query vector.
+        Nearest-neighbour search against a collection.
+
         Args:
-            query_vector: Normalised 768-d embedding of the text query.
-            top_k:        Maximum number of results to return.
+            query_vector:    Normalised 768-d query embedding.
+            top_k:           Max number of results to return.
+            collection_name: Collection to search within.
+
         Returns:
-            List of embedding_id strings ordered by relevance (highest first).
+            QueryResponse — iterate via .points to access ScoredPoint items.
         """
+        logger.debug(f"Searching top_k={top_k} in '{collection_name}' ...")
         results = self.client.query_points(
-            collection_name=COLLECTION_NAME,
+            collection_name=collection_name,
             query=query_vector.tolist(),
             limit=top_k,
         )
-        logger.debug(f"Retrieved {top_k} results")
-        print("\n--- Search Results Detail ---")
-        # pprint(results)
-        # results = [hit for hit in results.points]
-        # for hit in results.points:
-        # pprint(hit.model_dump())
-        # results = [
-        #     {
-        #         "id": "b25012b1-4e56-4a3f-848e-634ea1d91ee4",
-        #         "order_value": None,
-        #         "payload": {
-        #             "owner_id": 1,
-        #             "post_id": 101,
-        #             "tags": "nature, mountain, sunset",
-        #         },
-        #         "score": 1.0,
-        #         "shard_key": None,
-        #         "vector": None,
-        #         "version": 19,
-        #     },
-        #     {
-        #         "id": "d578ae0c-53ee-416c-8ff7-b6787d9c5c00",
-        #         "order_value": None,
-        #         "payload": {
-        #             "owner_id": 3,
-        #             "post_id": 15,
-        #             "tags": ["ocean", "architecture", "snow"],
-        #         },
-        #         "score": 0.109404,
-        #         "shard_key": None,
-        #         "vector": None,
-        #         "version": 5,
-        #     },
-        #     {
-        #         "id": "75657b02-7a7e-4887-b7e8-d41cdb2ee0b4",
-        #         "order_value": None,
-        #         "payload": {
-        #             "owner_id": 3,
-        #             "post_id": 16,
-        #             "tags": ["forest", "sports", "ocean"],
-        #         },
-        #         "score": 0.10324259,
-        #         "shard_key": None,
-        #         "vector": None,
-        #         "version": 6,
-        #     },
-        # ]
+        logger.debug(
+            f"Search returned {len(results.points)} hits from '{collection_name}'"
+        )
         return results
+
+    def search_labels(
+        self,
+        query_vector: np.ndarray,
+        threshold: float = 0.3,
+        top_k: int = 10,
+    ) -> list[dict]:
+        """
+        Semantic label search over the Places-365 label collection.
+
+        Args:
+            query_vector: Embedding of an image description or user query.
+            threshold:    Minimum cosine score to include a label (0.0–1.0).
+            top_k:        Hard cap on returned labels.
+
+        Returns:
+            list[dict]: e.g. [{"label": "airport_terminal", "score": 0.84}, ...]
+        """
+        logger.debug(
+            f"Searching label collection | top_k={top_k}, threshold={threshold}"
+        )
+
+        # 1. Run vector search against label collection
+        response = self.search(
+            query_vector=query_vector,
+            top_k=top_k,
+            collection_name=LABEL_COLLECTION_NAME,
+        )
+
+        # 2. Filter by threshold and format output
+        matched_labels = []
+        for hit in response.points:
+            if hit.score >= threshold:
+                matched_labels.append(
+                    {
+                        "label": hit.payload.get("label_name"),
+                        "score": round(hit.score, 4),
+                    }
+                )
+
+        logger.debug(
+            f"Labels above threshold ({threshold}): {[m['label'] for m in matched_labels]}"
+        )
+        return matched_labels
 
 
 if __name__ == "__main__":
-    # Initialize the store
+    import numpy as np
+
     store = QdrantStore()
 
-    # 1. Create a dummy 768-d embedding
-    test_embedding = np.random.rand(768).astype(np.float32)
+    # 1. Test image collection upsert
+    logger.info("Testing image collection upsert ...")
+    test_embedding = np.random.rand(VECTOR_SIZE).astype(np.float32)
+    test_payload = {"post_id": 101, "owner_id": 1, "tags": ["nature", "mountain"]}
+    new_id = store.upsert(test_embedding, test_payload)
+    logger.success(f"Upserted image point: {new_id}")
 
-    # 2. Define a sample payload
-    test_payload = {"post_id": 101, "owner_id": 1, "tags": "nature, mountain, sunset"}
+    # 2. Test search
+    logger.info("Testing search ...")
+    results = store.search(test_embedding, top_k=3)
+    ids = [str(h.id) for h in results.points]
+    logger.info(f"Search result IDs: {ids}")
+    assert new_id in ids, "Upserted point not found in search results!"
+    logger.success("Search check passed.")
 
-    print("--- Testing Upsert ---")
-    try:
-        new_id = store.upsert(test_embedding, test_payload)
-        print(f"Successfully upserted point with ID: {new_id}")
-
-        print("\n--- Testing Search ---")
-        # Search using the same vector (should return the point we just added)
-        search_results = store.search(test_embedding, top_k=3)
-        print(f"Search results (IDs): {search_results}")
-        search_results = [hit for hit in search_results.points]
-
-        if new_id in search_results:
-            print("Check passed: The upserted ID was found in search results.")
-
-        print("\n--- Testing Delete ---")
-        store.delete(new_id)
-        print(f"Successfully deleted point: {new_id}")
-
-        # Final check
-        post_delete_search = store.search(test_embedding, top_k=1)
-        post_delete_search = [hit for hit in post_delete_search.points]
-        if new_id not in post_delete_search:
-            print("Check passed: Point is no longer in the store.")
-
-    except Exception as e:
-        print(f"An error occurred during testing: {e}")
+    # 3. Test delete
+    logger.info("Testing delete ...")
+    store.delete(new_id)
+    post_delete = store.search(test_embedding, top_k=1)
+    assert new_id not in [str(h.id) for h in post_delete.points], (
+        "Point still exists after delete!"
+    )
+    logger.success("Delete check passed.")

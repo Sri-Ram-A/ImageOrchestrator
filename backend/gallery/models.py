@@ -27,6 +27,7 @@ class Post(models.Model):
     # Content
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
+    detailed_description = models.TextField(blank=True, default="", null=True)
     image = models.ImageField(upload_to="images/%Y/%m/")
     processing_type = models.CharField(
         max_length=20,
@@ -34,7 +35,9 @@ class Post(models.Model):
         default="none",
     )
     # Deduplication
-    phash = models.CharField(max_length=64, unique=True, db_index=True,null=True,blank=True)
+    phash = models.CharField(
+        max_length=64, unique=False, db_index=True, null=True, blank=True
+    )
     # Populated by FastAPI microservice
     tags = models.CharField(max_length=512, blank=True, default="")
     blur_score = models.FloatField(null=True, blank=True)

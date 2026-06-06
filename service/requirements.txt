@@ -16,3 +16,7 @@ torch
 sentencepiece # SiglipTokenizer requires the SentencePiece library
 torchvision
 load_dotenv
+
+# florence
+ einops
+ timm

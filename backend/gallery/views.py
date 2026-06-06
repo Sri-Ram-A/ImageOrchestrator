@@ -32,7 +32,7 @@ class PostView(APIView):
     @extend_schema(
         responses=PostsListSerializer(many=True),
     )
-    def get(self, request: Request):
+    def get(self, request: Request) -> Response:
         try:
             posts = Post.objects.filter(owner=request.user)
             serializer = PostsListSerializer(
@@ -43,7 +43,7 @@ class PostView(APIView):
             return Response({"error": "Not found."}, status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(request=PostCreateSerializer, responses=PostsListSerializer)
-    def post(self, request: Request):
+    def post(self, request: Request) -> Response:
         serializer = PostCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -80,7 +80,7 @@ class PostDetailView(APIView):
     @extend_schema(
         responses=PostsListSerializer,
     )
-    def get(self, request: Request, pk: int):
+    def get(self, request: Request, pk: int) -> Response:
         try:
             post = Post.objects.get(pk=pk, owner=request.user)
         except Post.DoesNotExist:
@@ -90,7 +90,7 @@ class PostDetailView(APIView):
     @extend_schema(
         responses={204: None},
     )
-    def delete(self, request, pk):
+    def delete(self, request, pk) -> Response:
         try:
             post = Post.objects.get(pk=pk, owner=request.user)
             # Remove the embedding from Qdrant via microservice
@@ -102,9 +102,9 @@ class PostDetailView(APIView):
                     )
                 except httpx.HTTPError as exc:
                     logger.debug(f"Delete embedding error: {exc}")
-                post.delete()
         except Post.DoesNotExist:
             return Response({"error": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        post.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -123,7 +123,7 @@ class ImageSearchView(APIView):
         ],
         responses=PostsListSerializer(many=True),
     )
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         query = request.query_params.get("q", "").strip()
         if not query:
             return Response(
@@ -133,7 +133,7 @@ class ImageSearchView(APIView):
         try:
             resp = httpx.get(
                 f"{FASTAPI_SERVICE_URL}/search",
-                params={"query": query, "top_k": 20},
+                params={"query": query, "top_k": 5},
                 timeout=10.0,
             )
             resp.raise_for_status()

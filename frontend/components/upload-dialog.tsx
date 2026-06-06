@@ -148,7 +148,6 @@ export function UploadDialog({ open, onClose, onUploaded }: {
                   exit={{ opacity: 0 }}
                   className="relative w-full h-40"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={preview} alt="Preview" className="w-full h-40 object-cover" />
                   <Button
                     type="button"

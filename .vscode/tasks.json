@@ -1,0 +1,54 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Terminal 1: Redis",
+            "type": "shell",
+            "command": "podman start redis-cc",
+            "presentation": {
+                "group": "dev-servers",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Terminal 2: Celery",
+            "type": "shell",
+            "command": "cd backend && micromamba run -n pytorch celery -A backend worker --loglevel=info --pool=solo",
+            "presentation": {
+                "group": "dev-servers",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Terminal 3: FastAPI",
+            "type": "shell",
+            "command": "cd service/backend && micromamba run -n pytorch python manage.py",
+            "presentation": {
+                "group": "dev-servers",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Terminal 4: Django/Other backend",
+            "type": "shell",
+            "command": "cd backend && micromamba run -n pytorch python manage.py runserver",
+            "presentation": {
+                "group": "dev-servers",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "🚀 Start All Terminals",
+            "dependsOn": [
+                "Terminal 1: Redis",
+                "Terminal 2: Celery",
+                "Terminal 3: FastAPI",
+                "Terminal 4: Django/Other backend"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
