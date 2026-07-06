@@ -338,3 +338,18 @@ Feel free to fork, open issues, or submit pull requests!
 - [SriRam.A](https://github.com/Sri-Ram-A)
 - [Zaid Sharieff](https://github.com/Zxid-Shxrieff)
 - [Sirikumar CS](https://github.com/siriaanya129)
+
+- I have attached the format of a report which you must use for geenration.Mention Figure number in 1.1 , 1,2 , 2,1 format
+- I have attached my JOURNEY.md and DEPLOY.md of my project , and for any code based references you can refer this github link (Donot refer the README file, since its not updated) : https://github.com/Sri-Ram-A/ImageOrchestrator/tree/cloud
+- I want you to focus majorly on the cloud computing part , explaianing the process from building to deploying this project
+# What is the project about ?
+- The Project is similar to google photos but with some enhanced features , the main goal of the project being to understand cloud computing and efficient deployable procedure rather than focusing majorly on the novelty
+- The Project gallery (Website name - Illuminate) features image uploading which are hashed (allowing efficient categorization of similar images using Perceptual Hashing), Finding a blur score using OPencv Mathematics (enabling easier detection of blur images) , Image Search based on Florence model description and embedding using mpnet (768 dimesnion size I think), allowing easier searching of images based on user descripiton and image description 
+# Technical part
+- The backend is written in Django Rest Framework , FatsAPI and NExtJs
+- The flow is such that when user sends request from frontend, the request is directed to CADDY which handles this routing (acting in the application server),which is routed to Django which is deployed on microsoft azure.This then process and sends request to celery for image processing (look into github : https://github.com/Sri-Ram-A/ImageOrchestrator/blob/cloud/backend/gallery/views.py and tasks.py) This chained task is executed in my fastapi 
+- Initally there was Google Siglip model which converted the image to a embedding and then the user text embedidng was compared across the image embedding , it was not working good.Hence, I shifted to florence_base which worked faboulosly, by converting the image ti description and then user query was also converted to embedding and compared with the description embedding (mpnet).
+- The fastpi service is hosted locally on the same azure machine and the celery broker also,But redis is hosted on redis cloud free service and the postgress database for storing image metadata is stored on NeonDB free cluster
+- The actual image can be stored on either - local and then serving the local link or can also be hosted aas a docker container minio on render or digital ocean , by just changing USE_MINIO = True in the settings.py (thereby also using Docker(we used podman))
+- The authentication is driven by django for registration and login or using google provider for direct sign in with google
+-  Cady reverse proxy and ansible deploy.yml was used for deploying with .sh custm files for looking into logs

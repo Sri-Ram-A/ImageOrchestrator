@@ -81,7 +81,7 @@
         mode: "0644"
         content: |
           {{ domain_or_ip }} {
-              reverse_proxy unix//{{ project_root }}/gunicorn.sock
+              reverse_proxy unix/{{ project_root }}/gunicorn.sock
 
               handle_path /static/* {
                   root * {{ backend_root }}/staticfiles
